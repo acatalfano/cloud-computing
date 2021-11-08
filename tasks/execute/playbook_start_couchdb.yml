@@ -1,0 +1,18 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano
+# Created: Fall 2021
+#
+# Start CouchDB and open up the network port
+#
+
+- name: Start The CouchDB Service
+  become: yes
+  service:
+    name: couchdb
+    state: restarted
+
+- name: Open up a connection on the CouchDB Port
+  shell: nc -t localhost 5984 &
+...

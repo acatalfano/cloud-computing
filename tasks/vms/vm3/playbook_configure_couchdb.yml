@@ -1,0 +1,25 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano
+# Created: Fall 2021
+#
+# Configure CouchDB
+#
+
+- name: Add admin user to CouchDB Config
+  become: yes
+  lineinfile:
+    path: /opt/couchdb/etc/local.ini
+    line: "admin = {{ password }}"
+    insertafter: ^\[admins\]
+    firstmatch: yes
+
+- name: Configure CouchDB's network interface
+  become: yes
+  lineinfile:
+    path: /opt/couchdb/etc/local.ini
+    line: "port = 5984\nbind_address = 0.0.0.0"
+    insertafter: ^\[chttpd\]
+    firstmatch: yes
+...

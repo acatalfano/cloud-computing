@@ -1,0 +1,8 @@
+---
+key_name: Default_KeyPair
+instance_type: t2.micro
+security_group: DANGER__tempLazyPermitEverything
+image: ami-09e67e426f25ce0d7
+region: us-east-1
+subnet: subnet-8d4cb2c1
+...

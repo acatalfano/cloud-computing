@@ -1,0 +1,5 @@
+---
+all_remote: all_remote
+kafka1_zookeeper_consumer: vm2
+kafka2_couchDB: vm3
+...

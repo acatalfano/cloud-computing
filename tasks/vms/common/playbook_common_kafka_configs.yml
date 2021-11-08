@@ -1,0 +1,53 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano
+# Created: Fall 2021
+#
+# Setup configurations that are common for both VM2 and VM3
+#
+- name: import path vars
+  include_vars: ../../../variables/path_names.yml
+
+- name: import groupname vars
+  include_vars: ../../../variables/group_names.yml
+
+- name: Kafka Server Properties - Uncomment Listeners
+  replace:
+    path: "{{ kafka_server_properties }}"
+    regexp: \#(?=listeners=)
+
+- name: Kafka Server Properties - Include Advertised Listeners (part 1)
+  replace:
+    path: "{{ kafka_server_properties }}"
+    regexp: \#(?=advertised\.listeners=PLAINTEXT://)
+
+- name: Kafka Server Properties - Include Advertised Listeners (part 2)
+  replace:
+    path: "{{ kafka_server_properties }}"
+    regexp: (?<=advertised\.listeners=PLAINTEXT://)[^:]*(?=:9092)
+    replace: '{{ inventory_hostname }}'
+
+- name: Kafka Server Properties - Uncomment Listeners Security Protocol
+  replace:
+    path: "{{ kafka_server_properties }}"
+    regexp: \#(?=listener\.security\.protocol\.map=)
+
+- name: Kafka Server Properties - Update Zookeeper Connect
+  replace:
+    path: "{{ kafka_server_properties }}"
+    regexp: (?<=zookeeper\.connect=)(\s*localhost\s*)(?=:2181)
+    replace: "{{ groups[kafka1_zookeeper_consumer].0 }}"
+
+- name: Kafka Server Start - Export KAFKA_HEAP_OPTS
+  replace:
+    path: "{{ kafka_server_start }}"
+    regexp: (?<=export KAFKA_HEAP_OPTS=\")[^\"]*
+    replace: -Xms128M -Xmx256M
+
+- name: Kafka Server Start - Export KAFKA_OPTS
+  lineinfile:
+    path: "{{ kafka_server_start }}"
+    line: export KAFKA_OPTS="-Djava.net.preferIPv4Stack=True"
+    insertbefore: ^exec\b.*
+...

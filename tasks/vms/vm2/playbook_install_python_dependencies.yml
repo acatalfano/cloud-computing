@@ -1,0 +1,21 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano
+# Created: Fall 2021
+#
+# Install Python dependencies
+# for Remote VM hosting Kafka1, Zookeeper, and Consumer
+#
+- name: install pip on remote
+  become: yes
+  apt: name=python3-pip
+
+
+- name: install python package dependencies
+  pip:
+    name:
+      - jsbeautifier
+      - kafka-python
+      - CouchDB
+...

@@ -1,0 +1,4 @@
+**/*.pem
+**/provided_files
+**/.aws
+**/.vagrant

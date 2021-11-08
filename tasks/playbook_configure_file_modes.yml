@@ -1,0 +1,13 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano
+# Created: Fall 2021
+#
+# Configures file mode for the ssh key
+
+- name: Change permissions for id_rsa
+  file:
+    path: ~/.ssh/id_rsa
+    mode: 0600
+...

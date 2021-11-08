@@ -1,0 +1,13 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano
+# Created: Fall 2021
+#
+- name: 'Install boto3 and botocore'
+  pip:
+    name:
+      - boto
+      - boto3
+      - botocore
+...

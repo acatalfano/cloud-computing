@@ -1,0 +1,15 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano
+# Created: Fall 2021
+#
+# Convenience Task to start up the VM's Kafka server
+#
+
+- name: include path-name vars
+  include_vars: ../../variables/path_names.yml
+
+- name: Start Kafka
+  shell: "nohup {{ kafka_directory }}/bin/kafka-server-start.sh {{ kafka_directory }}/config/server.properties &"
+...

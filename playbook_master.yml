@@ -1,0 +1,186 @@
+---
+#
+# EECS 4287/5287: Principles of Cloud Computing
+# Author: Adam Catalfano, AJ
+# Created: Fall 2021
+#
+# This playbook provisions the remote Instances
+# and starts running the Kafka/CouchDB architecture
+# with 2 Kafka brokers and 1 Zookeeper instance
+#
+#
+#
+#
+#
+#
+#
+#
+#
+# TODO: search for TODO's in all the files!
+
+# NOTE: wherever "kafka1" and "kafka2" are mentioned,
+#     kafka1 = VM2 = kafka/zookeeper/consumer instance
+#     kafka2 = VM3 = kafka/couchDB instance
+
+
+##########################################################
+### Play 1: Terminate Any Existing Cloud Instances
+#
+# Run the cleanup master playbook to cleanup
+# any remote instances if they exist
+##########################################################
+- import_playbook: playbook_master_cleanup.yml
+
+##########################################################
+### Play 2: Install/Configure Base Dependencies
+#
+# Install pip, configure python to point to python3,
+# Install python packages boto3 and botocore
+##########################################################
+- name: "Play 2: Install and Configure Base Dependencies"
+  hosts: MyLocalVMs
+  remote_user: ubuntu
+  strategy: debug
+
+  pre_tasks:
+  - include_tasks: tasks/playbook_aptitude_upgrade.yml
+  - include_tasks: tasks/playbook_configure_python.yml
+  - include_tasks: tasks/playbook_configure_file_modes.yml
+
+  tasks:
+  - include_tasks: tasks/playbook_install_boto.yml
+
+
+##########################################################
+### Play 3: Provision Cloud Instances
+#
+# Provision instance for the CouchDB/Kafka host
+# and instance for the Zookeeper/Kafka/Consumer host
+##########################################################
+- name: "Play 3: Create AWS EC2 Instances"
+  hosts: MyLocalVMs
+  remote_user: ubuntu
+  vars:
+    zookeeper_ip: vm2_ip
+    couchdb_ip: vm3_ip
+  strategy: debug
+  collections:
+  - amazon.aws
+
+  tasks:
+  - include_tasks: tasks/playbook_create_aws_vms.yml
+
+##########################################################
+### Play 4: Install Common Dependencies on all Cloud Instances
+#
+# Install Kafka on cloud instances
+##########################################################
+- name: "Play 4: Install Common Dependencies on all Cloud Instances"
+  hosts: "{{ all_remote }}"
+  vars_files:
+  - variables/group_names.yml
+  remote_user: ubuntu
+  strategy: debug
+  tasks:
+  # TODO: not 100% sure inventory_hostname works as expected when doing in like this...
+  #     i.e. in playbook_common_kafka_configs.yml
+  - include_tasks: tasks/playbook_aptitude_upgrade.yml
+  - include_tasks: tasks/vms/common/playbook_install_kafka.yml
+  - include_tasks: tasks/vms/common/playbook_common_kafka_configs.yml
+
+
+##########################################################
+### Play 5: Install Dependencies on the VM3 Cloud Instance
+#
+# Install Zookeeper and Kafka on the Zookeeper/Kafka/Consumer host
+# Add and configure the consumer file
+##########################################################
+- name: "Play 5: Install Dependencies on Zookeeper/Kafka/Consumer Cloud Instance"
+  hosts: "{{ kafka1_zookeeper_consumer }}"
+  vars_files:
+  - variables/group_names.yml
+  remote_user: ubuntu
+  strategy: debug
+  tasks:
+  - include_tasks: tasks/vms/vm2/playbook_configure_zookeeper.yml
+  - include_tasks: tasks/vms/vm2/playbook_install_python_dependencies.yml
+
+  - name: copy consumer.py over to remote instance
+    copy:
+      src: file_srcs/consumer.py
+      dest: ~/consumer.py
+
+##########################################################
+### Play 6: Install Dependencies on the VM3 Cloud Instance
+#
+# Install and configure CouchDB and Kafka on the CouchDB/Kafka host
+##########################################################
+- name: "Play 6: Install Dependencies on CouchDB/Kafka Cloud Instance"
+  hosts: "{{ kafka2_couchDB }}"
+  vars_files:
+  - variables/group_names.yml
+  remote_user: ubuntu
+  strategy: debug
+  tasks:
+  - include_tasks: tasks/vms/vm3/playbook_install_couchdb.yml
+
+  - include_tasks: tasks/vms/vm3/playbook_configure_couchdb.yml
+    vars:
+      password: admin password
+
+
+##########################################################
+### Play 7: Start Zookeeper on the VM2 Cloud Instance
+#
+# Start Zookeeper on the Zookeeper/Kafka/Consumer host
+##########################################################
+- name: "Play 7: Install Dependencies on CouchDB/Kafka Cloud Instance"
+  hosts: "{{ kafka1_zookeeper_consumer }}"
+  remote_user: ubuntu
+  vars_files:
+  - variables/group_names.yml
+  - variables/path_names.yml
+  strategy: debug
+  tasks:
+  - name: Start Zookeeper
+    shell: "{{ kafka_directory }}/bin/zookeeper-server-start.sh {{ kafka_directory }}/config/zookeeper.properties &"
+
+
+
+##########################################################
+### Play 8: Run Kafka and CouchDB on vm3
+#
+# Start up Zookeeper and Kafka on the Zookeeper/Kafka host
+##########################################################
+- name: "Play 8: Run Kafka and CouchDB on vm3"
+  hosts: "{{ kafka2_couchDB }}"
+  vars_files:
+  - variables/group_names.yml
+  remote_user: ubuntu
+  tasks:
+  - include_tasks: tasks/execute/playbook_start_couchdb.yml
+  - include_tasks: tasks/execute/playbook_start_kafka.yml
+
+
+##########################################################
+### Play 9: Run Kafka and Consumer on vm2
+#
+# Start up Kafka and Consumer on the Zookeeper/Kafka/Consumer host
+##########################################################
+- name: "Play 9: Run Kafka, and Consumer on vm2"
+  hosts: "{{ kafka1_zookeeper_consumer }}"
+  vars_files:
+  - variables/group_names.yml
+  remote_user: ubuntu
+  vars:
+    provisioner_ip: "{{ groups['MyLocalVMs'].0 }}"
+  tasks:
+  - include_tasks: tasks/execute/playbook_start_kafka.yml
+
+  - name: Start Consumer
+    environment:
+      COUCH_DB_IP: "{{ hostvars[provisioner_ip]['vm3_ip'] }}"
+      KAFKA_1_IP: "{{ hostvars[provisioner_ip]['vm2_ip'] }}"
+      KAFKA_2_IP: "{{ hostvars[provisioner_ip]['vm3_ip'] }}"
+    shell: python3 ./consumer.py &
+...

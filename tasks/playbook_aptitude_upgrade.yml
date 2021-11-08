@@ -1,0 +1,15 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano
+# Created: Fall 2021
+#
+# Simple playbook to make the initial aptitude upgrade
+# a simpler syntax in the master playbook
+
+- name: Aptitude Upgrade
+  become: yes
+  apt:
+    upgrade: dist
+    update_cache: yes
+...
