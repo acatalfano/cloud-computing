@@ -1,23 +1,180 @@
 ---
 #
 # EECS 5287: Principles of Cloud Computing
-# Author: Adam Catalfano
+# Author: Adam Catalfano, AJ
 # Created: Fall 2021
 #
 # Configure CouchDB
 #
 
+# - name: Include config-line variables
+#   include_vars: vars_couchdb_config_lines.yml
+
+# - name: Uncomment omitted-by-default settings from default.ini
+#   include_tasks:
+#     file:  # not required. The name of the imported file is specified directly without any other option. Unlike M(import_tasks), most keywords, including loop, with_items, and conditionals, apply to this statement. The do until loop is not supported on M(include_tasks).
+#     apply:  # not required. Accepts a hash of task keywords (e.g. C(tags), C(become)) that will be applied to the tasks within the include.
+#     free-form:  # not required. Supplying a file name via free-form C(- include_tasks: file.yml) of a file to be included is the equivalent
+#   of specifying an argument of I(file).
+
+#   loop: "{{ uncomment_lines | dict2items }}"
+
+# TODO: drop the copied file if this works...
+
+# FOR YOUR LOOPING DO SOMETHING LIKE THIS: (key=the [xyz] section header that separates out the "before" part and value=list of replacements)
+# - hosts: localhost
+#   vars:
+#     war_files:
+#       server1:
+#       - file1.war
+#       - file2.war
+#       server2:
+#       - file1.war
+#       - file2.war
+#       - file3.war
+#   tasks:
+#     - name: Loop over subelements of the dictionary
+#       debug:
+#         msg: "Key={{ item.0.key }} value={{ item.1 }}"
+#       loop: "{{ war_files | dict2items | subelements('value') }}"
+
+# In /opt/couchdb/etc/default.ini ---
+#   UNCOMMENT:
+#
+#     [couchdb]
+#     1. ;os_process_timeout
+#     2. ;max_dbs_optn
+#     3. ;file_compression
+#     4. ;attachment_stream_buffer_size
+#     5. ;default_security
+#     6. ;changes_docs_ids_optimization_threshold
+#     7. ;max_document_size
+#     8. ;default_engine
+#     9. ;users_db_security_editable
+#
+#     [purge]
+#
+#     [cluster]
+#     10. ;q=2
+#     11. ;n=3
+#
+#     [chttpd]
+#     12. ;backlog
+#     13. ;socket_options
+#     14. ;server_options
+#     15. ;require_valid_user
+#     16. ;prefer_minimal
+#     17. ;max_db_number_for_dbs_info_req
+#
+#     [couch_peruser]
+#     18. ;enable
+#     19. ;delete_dbs
+#     20. ;database_prefix
+#
+#     [httpd]
+#     21. ;authentication_handlers
+#     22. ;secure_rewrites
+#     23. ;allow_jsonp
+#     24. ;socket_options = [{sndbuf, 262144}]
+#
+#     [ssl]
+#     25. ;port
+#
+#     [cors]
+#     26. ;credentials
+#
+#     [query_server_config]
+#     27. ;reduce_limit
+#     28. ;os_process_limit
+#
+#     [uuids]
+#     29. ;algorithm
+#     30. utc_id_suffix
+#     31. max_count
+#
+#     [attachments]
+#     32. ;compression_level
+#     33. ;compressible_types
+#
+#     [replicator]
+#     34. ;startup_jitter
+#     35. ;max_jobs
+#     36. ;interval
+#     37. ;max_churn
+#     38. ;worker_processes
+#     39. ;worker_batch_size
+#     40. ;http_connections
+#     41. ;connection_timeout
+#     42. ;retries_per_request
+#     43. ;socket_options
+#     44. ;verify_ssl_certificates
+#     45. ;ssl_certificate_max_depth
+#
+#     [log]
+#     46. ;level
+#     47. ;writer
+#
+#     [ioq]
+#     48. ;concurrency
+#     49. ;ratio
+#
+#     [ioq.bypass]
+#     50. ;os_process
+#     51. ;read
+#     52. ;write
+#     53. view_update
+#     54. shard_sync
+#     55. compaction
+#
+#
+#
+#
+#
+#   INSERT:
+#     [httpd]
+#     1. enable_cors = false
+#     2. enable_xframe_options = false
+#     3. max_http_request_size = 4294967296 ; 4GB
+#
+#     [couch_httpd_auth]
+#     4. authentication_redirect = /_utils/session.html
+#     5. require_valid_user = false
+#     6. timeout = 600 ; number of seconds before automatic logout
+#     7. auth_cache_size = 50 ; size is number of cache entries
+#     8. allow_persistent_cookies = true ; set to false to disallow persistent cookies
+#     9. iterations = 10 ; iterations for password hashing
+#
+#     [csp]
+#     10. enable = true
+#
+#
+#
+#
+#   REMOVE: (all lines vvv to EOF)
+#     [prometheus]
+#     additional_port = false
+#     bind_address = 127.0.0.1
+#     port = 17986
+#
+# TODO: vvv shouldn't be needed, BUT might need this ^^^^
 - name: Add admin user to CouchDB Config
   become: yes
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /opt/couchdb/etc/local.ini
     line: "admin = {{ password }}"
     insertafter: ^\[admins\]
     firstmatch: yes
 
+- name: Copy default.ini over to CouchDB Instance
+  become: yes
+  ansible.builtin.copy:
+    src: ../../../file_srcs/default.ini
+    dest: /opt/couchdb/etc/default.ini
+    mode: 0640
+
 - name: Configure CouchDB's network interface
   become: yes
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /opt/couchdb/etc/local.ini
     line: "port = 5984\nbind_address = 0.0.0.0"
     insertafter: ^\[chttpd\]

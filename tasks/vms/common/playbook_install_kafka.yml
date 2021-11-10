@@ -1,25 +1,31 @@
 ---
 #
 # EECS 5287: Principles of Cloud Computing
-# Author: Adam Catalfano
+# Author: Adam Catalfano, AJ
 # Created: Fall 2021
 #
 # Install Kafka and Dependencies
+#
 
 - name: Install OpenJDK
   become: yes
-  apt: name=openjdk-8-jdk
+  ansible.builtin.apt:
+    name: openjdk-11-jdk
+    update_cache: yes
+    # TODO: drop this option when you add the aptitude upgrades back in!
+  # TODO: i.e. replace those 3 lines with this line vvv:
+  # ansible.builtin.apt: name=openjdk-11-jdk
 
 - name: Include Path-Name Vars
-  include_vars: ../../../variables/path_names.yml
+  ansible.builtin.include_vars: ../../../variables/path_names.yml
 
 - name: Make directory for Kafka installation
-  file:
+  ansible.builtin.file:
     state: directory
     path: "{{ kafka_directory }}"
 
 - name: Extract archive into target Kafka install directory
-  unarchive:
+  ansible.builtin.unarchive:
     src: https://dlcdn.apache.org/kafka/2.8.1/kafka_2.13-2.8.1.tgz
     dest: "{{ kafka_directory }}"
     remote_src: yes

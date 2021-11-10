@@ -1,20 +1,22 @@
 ---
 #
 # EECS 5287: Principles of Cloud Computing
-# Author: Adam Catalfano
+# Author: Adam Catalfano, AJ
 # Created: Fall 2021
 #
-# Configures "python" to point to python3
+# Configures the CLI command 'python' to point to python3,
+# b/c ansible stubbornly wants to use 'python' even though it can't
+#
 
-- name: "Configure update alternatives for python2.7"
+- name: Configure update alternatives for python2.7
   become: yes
-  raw: update-alternatives --install /usr/bin/python python /usr/bin/python2.7 1
+  ansible.builtin.raw: update-alternatives --install /usr/bin/python python /usr/bin/python2.7 1
 
-- name: "Configure update alternatives for python3"
+- name: Configure update alternatives for python3
   become: yes
-  raw: update-alternatives --install /usr/bin/python python /usr/bin/python3 2
+  ansible.builtin.raw: update-alternatives --install /usr/bin/python python /usr/bin/python3 2
 
-- name: "Set python to point to python3"
+- name: Set python to point to python3
   become: yes
-  raw: update-alternatives --set python /usr/bin/python3
+  ansible.builtin.raw: update-alternatives --set python /usr/bin/python3
 ...

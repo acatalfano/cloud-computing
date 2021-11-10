@@ -1,17 +1,17 @@
 ---
 #
 # EECS 5287: Principles of Cloud Computing
-# Author: Adam Catalfano
+# Author: Adam Catalfano, AJ
 # Created: Fall 2021
 #
 # Create EC2 instances on AWS
 #
 
 - name: Include AWS variables
-  include_vars: 'variables/aws_vars.yml'
+  ansible.builtin.include_vars: ../../variables/aws_vars.yml
 
 - name: Include Group Name variables
-  include_vars: 'variables/group_names.yml'
+  ansible.builtin.include_vars: ../../variables/group_names.yml
 
 - name: Provision AWS instances
   amazon.aws.ec2:
@@ -27,13 +27,13 @@
   register: ec2
 
 - name: Add new instances to all_remote group
-  add_host:
+  ansible.builtin.add_host:
     hostname: "{{ item.public_ip }}"
     groupname: "{{ all_remote }}"
   loop: "{{ ec2.instances }}"
 
 - name: Add instances to appropriate vm2 and vm3 groups
-  add_host:
+  ansible.builtin.add_host:
     hostname: "{{ item.0.public_ip }}"
     groupname: "{{ item.1 }}"
   with_together:
@@ -41,30 +41,31 @@
     - [ "{{ kafka1_zookeeper_consumer }}", "{{ kafka2_couchDB }}" ]
 
 - name: set ips as facts
-  set_fact:
-    "{{ couchdb_ip }}": "{{ ec2.instances.0.public_ip }}"
-    "{{ zookeeper_ip }}": "{{ ec2.instances.1.public_ip }}"
+  ansible.builtin.set_fact:
+    "{{ zookeeper_ip }}": "{{ ec2.instances.0.public_ip }}"
+    "{{ couchdb_ip }}": "{{ ec2.instances.1.public_ip }}"
 
 
 - name: Pause for deployment
-  pause:
+  ansible.builtin.pause:
     seconds: 30
 
 - name: Wait for SSH to come up
   debugger: on_failed
   delegate_to: "{{ item.public_dns_name }}"
-  wait_for:
+  ansible.builtin.wait_for:
     timeout: 60
+    port: 22
     state: started
   loop: "{{ ec2.instances }}"
 
 - name: Include Local Var Names
-  include_vars: ../variables/local_var_names.yml
+  ansible.builtin.include_vars: ../../variables/local_var_names.yml
 
 - name: Set IDs Fact
-  set_fact:
+  ansible.builtin.set_fact:
     key_value: "{{ running_instance_ids }}: {{ ec2.instances }}"
 
 - name: Write EC2 IDs to local variables file
-  include_tasks: playbook_write_local_vars_file.yml
+  ansible.builtin.include_tasks: ../playbook_write_local_vars_file.yml
 ...

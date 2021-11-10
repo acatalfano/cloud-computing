@@ -1,0 +1,14 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano, AJ
+# Created: Fall 2021
+#
+# Configure CouchDB
+#
+
+
+- name: Uncomment a line from default.ini
+# TODO: kill probably
+
+...

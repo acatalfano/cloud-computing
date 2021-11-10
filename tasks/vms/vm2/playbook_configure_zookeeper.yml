@@ -1,7 +1,7 @@
 ---
 #
 # EECS 5287: Principles of Cloud Computing
-# Author: Adam Catalfano
+# Author: Adam Catalfano, AJ
 # Created: Fall 2021
 #
 # Configure ZooKeeper
@@ -9,22 +9,22 @@
 #
 
 - name: include path-name variables
-  include_vars: ../../../variables/path_names.yml
+  ansible.builtin.include_vars: ../../../variables/path_names.yml
 
 - name: Zookeeper Server Start - Export KAFKA_HEAP_OPTS
-  replace:
+  ansible.builtin.replace:
     path: "{{ zookeeper_server_start }}"
     regexp: (?<=export KAFKA_HEAP_OPTS=\")[^\"]*
     replace: -Xms128M -Xmx256M
 
 - name: Zookeeper Server Start - Export KAFKA_OPTS
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "{{ zookeeper_server_start }}"
     line: export KAFKA_OPTS="-Djava.net.preferIPv4Stack=True"
     insertbefore: ^exec\b.*
 
 - name: set broker id to 1
-  replace:
+  ansible.builtin.replace:
     path: "{{ kafka_server_properties }}"
     regexp: (?<=broker\.id=)0
     replace: 1

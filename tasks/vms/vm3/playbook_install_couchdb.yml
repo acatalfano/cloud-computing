@@ -1,7 +1,7 @@
 ---
 #
 # EECS 5287: Principles of Cloud Computing
-# Author: Adam Catalfano
+# Author: Adam Catalfano, AJ
 # Created: Fall 2021
 #
 # Install CouchDB and dependencies
@@ -9,24 +9,24 @@
 
 - name: Add the CouchDB GPG Key
   become: yes
-  apt_key:
+  ansible.builtin.apt_key:
     url: https://couchdb.apache.org/repo/keys.asc
     keyring: /usr/share/keyrings/couchdb-archive-keyring.gpg
 
-- name: store shell of repo line in a register variable
-  shell: |
+- name: store shell output of repo line in a register variable
+  ansible.builtin.shell: |
     . /etc/os-release
     echo "deb [signed-by=/usr/share/keyrings/couchdb-archive-keyring.gpg] https://apache.jfrog.io/artifactory/couchdb-deb/ ${VERSION_CODENAME} main"
   register: repo_line_echo_cmd
 
 - name: Add the CouchDB Repository
   become: yes
-  apt_repository:
+  ansible.builtin.apt_repository:
     repo: "{{ repo_line_echo_cmd.stdout }}"
     filename: couchdb
 
 - name: Install CouchDB
   become: yes
-  apt:
+  ansible.builtin.apt:
     name: couchdb
 ...

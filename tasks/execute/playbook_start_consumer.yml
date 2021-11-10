@@ -1,0 +1,29 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano, AJ
+# Created: Fall 2021
+#
+# Wait for necessary connections and start Consumer
+#
+
+- name: Wait for Kafka instances
+  ansible.builtin.wait_for:
+    host: "{{ item }}"
+    port: 9092
+  loop: "{{ [zookeeper_ip, couchDB_ip] }}"
+
+
+- name: Wait for CouchDB
+  ansible.builtin.wait_for:
+    host: "{{ couchDB_ip }}"
+    port: 5984
+
+
+- name: Start Consumer
+  environment:
+    COUCH_DB_IP: "{{ couchDB_ip }}"
+    KAFKA_1_IP: "{{ zookeeper_ip }}"
+    KAFKA_2_IP: "{{ couchDB_ip }}"
+  ansible.builtin.shell: daemon python3 ./consumer.py &
+...

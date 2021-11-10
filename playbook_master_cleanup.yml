@@ -1,4 +1,16 @@
 ---
+# EECS 4287/5287: Principles of Cloud Computing
+# Author: Adam Catalfano, AJ
+# Created: Fall 2021
+#
+# This playbook leverages the local_vm_variables file
+# stored on the local cloud-provisioner VM
+# to teardown the previously provisioned cloud instances
+#
+# If the local_vm_variables files does not exist,
+# this playbook does nothing
+#
+
 ##########################################################
 ### Play 1: Cleanup provisioned instances
 #
@@ -10,16 +22,16 @@
   hosts: MyLocalVMs
   remote_user: ubuntu
   vars_files:
-  - ./variables/path_names.yml
-  - ./variables/local_var_names.yml
+  - variables/path_names.yml
+  - variables/local_var_names.yml
 
   tasks:
   - name: Check if Local Var Names File exists
-    stat:
+    ansible.builtin.stat:
       path: "{{ local_vm_variables }}"
     register: local_vars_stat
 
   - name: destroy AWS instances
-    include_tasks: ./tasks/playbook_cleanup.yml
+    ansible.builtin.include_tasks: tasks/aws_instance_management/playbook_cleanup.yml
     when: local_vars_stat.stat.exists
 ...

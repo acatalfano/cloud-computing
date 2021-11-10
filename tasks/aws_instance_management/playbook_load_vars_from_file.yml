@@ -1,0 +1,17 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano, AJ
+# Created: Fall 2021
+#
+# Helper tasks to load the stored vars file
+# and the vars_file containing the var names
+# of the contents of the stored vars file
+#
+
+- name: Read in variables from stored EC2-id file
+  ansible.builtin.include_vars: "{{ local_vm_variables }}"
+
+- name: Include AWS variables
+  ansible.builtin.include_vars: ../../variables/aws_vars.yml
+...

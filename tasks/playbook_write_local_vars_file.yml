@@ -1,7 +1,7 @@
 ---
 #
 # EECS 5287: Principles of Cloud Computing
-# Author: Adam Catalfano
+# Author: Adam Catalfano, AJ
 # Created: Fall 2021
 #
 # Write the created instances to an inventory file, deleting it first if it exists
@@ -10,22 +10,30 @@
 #
 
 - name: Include Path Name Vars
-  include_vars: ../variables/path_names.yml
-
-- name: Delete Local Variables File if exists
-  file:
-    path: "{{ local_vm_variables }}"
-    state: absent
+  ansible.builtin.include_vars: ../variables/path_names.yml
 
 - name: Include Group Name Vars
-  include_vars: ../variables/group_names.yml
+  ansible.builtin.include_vars: ../variables/group_names.yml
 
 - name: Include Local Var Names
-  include_vars: ../variables/local_var_names.yml
+  ansible.builtin.include_vars: ../variables/local_var_names.yml
 
 - name: Write EC2 ID's to Variables File as an array variable
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "{{ local_vm_variables }}"
     line: "---\n{{ running_instance_ids }}: {{ hostvars[inventory_hostname].ec2.instance_ids }}\n..."
     create: yes
+
+- name: "testing... what is hostvars[inventory_hostname].ec2.instance_ids???"
+  ansible.builtin.debug:
+    var: hostvars[inventory_hostname].ec2.instance_ids
+
+- name: "testing... what is is ec2.instance_ids"
+  ansible.builtin.debug:
+    var: ec2.instance_ids
+
+- name: "make it stop early"
+  ansible.builtin.debug:
+    var: xyz
+
 ...
