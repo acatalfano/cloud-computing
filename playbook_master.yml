@@ -201,11 +201,86 @@
   - variables/path_names.yml
   - variables/group_names.yml
   vars:
-    provisioner_ip: "{{ groups['MyLocalVMs'].0 }}"
+    provisioner_ip: "{{ groups['MyLocalVMs'].0 | default('127.0.0.1') }}"
 
   tasks:
   - ansible.builtin.include_tasks: tasks/execute/playbook_start_consumer.yml
     vars:
       zookeeper_ip: "{{ hostvars[provisioner_ip]['vm2_ip'] }}"
       couchDB_ip: "{{ hostvars[provisioner_ip]['vm3_ip'] }}"
+
+
+##########################################################
+### Play 11: Provision Producers and run script
+#
+# Provision VM1.1 and VM1.2 and execute producer.py on each
+##########################################################
+- name: 'Play 11: Provision Producers and run script'
+  ansible.builtin.import_playbook: playbook_master_run_producers.yml
+# - name: testing some stuff
+#   hosts: MyLocalVMs
+#   remote_user: ubuntu
+#   tasks:
+#   - name: print all ansible facts
+#     debug:
+#       var: ansible_facts
+
+#   - name: print ansible local
+#     debug:
+#       var: ansible_local
+
+#   - name: print host vars
+#     debug:
+#       var: hostvars
+
+#   - name: print groups
+#     debug:
+#       var: groups
+
+
+# - name: testing stuff on AllProducers
+#   hosts: AllProducers
+#   remote_user: vagrant
+#   strategy: debug
+#   tasks:
+#   - name: print all ansible facts
+#     debug:
+#       var: ansible_facts
+
+#   - name: print ansible local
+#     debug:
+#       var: ansible_local
+
+#   - name: print host vars
+#     debug:
+#       var: hostvars
+
+#   - name: print groups
+#     debug:
+#       var: groups
+
+
+# ##########################################################
+# ### Play 12: Customize the first provider
+# #
+# # Customize provider.py for VM1.1
+# ##########################################################
+# - name: 'Play 12: Customize the first provider'
+
+
+# ##########################################################
+# ### Play 13: Customize the second provider
+# #
+# # Customize provider.py for VM1.2
+# ##########################################################
+# - name: 'Play 13: Customize the second provider'
+
+
+# ##########################################################
+# ### Play 14: Run Provider on provider VM's
+# #
+# # Run provider.py on both VM1.1 and VM1.2
+# ##########################################################
+# - name: "Play 14: Run Provider on provider VM's"
+
 ...

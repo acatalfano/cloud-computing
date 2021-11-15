@@ -1,22 +1,53 @@
-from kafka import KafkaProducer
-from json import dumps
+from datetime import datetime
+import os
+import time
 
-# installed requests package to call open weather API
 import requests
-from time import sleep
+from kafka import KafkaProducer
+import logging
+import json
+import jsbeautifier
 
-# registered into the weather API to call and get weather data for the city
-# upon registration below API Key was assigned which is essential to call API
-# Key=API_KEY
 
-while True:
-    response = requests.get(
-        "http://api.openweathermap.org/data/2.5/weather?q=dallas&appid=cd3d379097b72bb4333cd41f6d499313")
-    print(response.json())
+# topic to produce:
+topic = 'TOPIC'
 
-    producer = KafkaProducer(bootstrap_servers=['129.114.25.12:9092', '129.114.25.124:9092'],
-                             value_serializer=lambda x:
-                             dumps(x).encode('utf-8'))
-    producer.send('weather', value=response.json())
-    producer.flush()
-    sleep(60)
+# uncomment to enable more verbose kafka logging
+# logging.basicConfig(level=logging.DEBUG)
+
+bootstrap_server = '50.19.186.89'
+kafka_port = '9092'
+
+# acquire the producer
+producer = KafkaProducer(bootstrap_servers=[f'{bootstrap_server}:{kafka_port}'])
+
+app_id = 'APP_ID'
+api_key = 'API_KEY'
+base_url = 'api_url'
+endpoint = 'api_endpoint'
+url_options = 'url_options'
+
+request_url = f'{base_url}{endpoint}{url_options}'
+response = requests.get(request_url)
+
+if response:
+    content = response.json()
+
+    # get list of news stories
+    data: list = content['data']
+
+    beautifier_opts = jsbeautifier.default_options()
+    beautifier_opts.indent_size = 2
+
+    for datum in data:
+        # timestamp event was sent
+        timestamp = datetime.timestamp(datetime.utcnow())
+        datum['timestamp'] = timestamp
+        datum_content = json.dumps(datum)
+        print(jsbeautifier.beautify(datum_content, beautifier_opts))
+        producer.send(topic, value=bytes(datum_content, 'ascii'))
+        producer.flush()
+        time.sleep(1)
+
+# we are done
+producer.close()

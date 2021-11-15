@@ -1,0 +1,19 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano, AJ
+# Created: Fall 2021
+#
+# Configure Producer Script
+#
+
+- name: Include Path-Name Variables
+  ansible.builtin.include_vars: ../../../variables/path_names.yml
+
+- name: Apply Configurations
+  ansible.builtin.replace:
+    path: "{{ producer_script }}"
+    regexp: "(?<=^{{ item.key }} = \\')[^\\']*"
+    replace: "{{ item.value }}"
+  loop: "{{ config | combine({ 'bootstrap_server': kafkaIp | default(omit) }) | dict2items }}"
+...
