@@ -6,8 +6,6 @@
 # This playbook provisions the remote Instances
 # and starts running the Kafka/CouchDB architecture
 # with 2 Kafka brokers and 1 Zookeeper instance
-#
-# TODO: search for TODO's in all the files!
 
 # NOTE: wherever 'kafka1' and 'kafka2' are mentioned,
 #     kafka1 = VM2 = kafka/zookeeper/consumer instance
@@ -86,12 +84,6 @@
   - name: Install daemon for running programs later (without termination)
     become: yes
     ansible.builtin.apt: name=daemon
-
-  # - name: Reboot cloud instances after major upgrades and/or installations
-  #   ansible.builtin.reboot:
-  #     reboot_timeout: 1000
-  # TODO: re-disable (maybe)
-
 
 ##########################################################
 ### Play 5: Install Dependencies on the VM3 Cloud Instance
@@ -217,70 +209,4 @@
 ##########################################################
 - name: 'Play 11: Provision Producers and run script'
   ansible.builtin.import_playbook: playbook_master_run_producers.yml
-# - name: testing some stuff
-#   hosts: MyLocalVMs
-#   remote_user: ubuntu
-#   tasks:
-#   - name: print all ansible facts
-#     debug:
-#       var: ansible_facts
-
-#   - name: print ansible local
-#     debug:
-#       var: ansible_local
-
-#   - name: print host vars
-#     debug:
-#       var: hostvars
-
-#   - name: print groups
-#     debug:
-#       var: groups
-
-
-# - name: testing stuff on AllProducers
-#   hosts: AllProducers
-#   remote_user: vagrant
-#   strategy: debug
-#   tasks:
-#   - name: print all ansible facts
-#     debug:
-#       var: ansible_facts
-
-#   - name: print ansible local
-#     debug:
-#       var: ansible_local
-
-#   - name: print host vars
-#     debug:
-#       var: hostvars
-
-#   - name: print groups
-#     debug:
-#       var: groups
-
-
-# ##########################################################
-# ### Play 12: Customize the first provider
-# #
-# # Customize provider.py for VM1.1
-# ##########################################################
-# - name: 'Play 12: Customize the first provider'
-
-
-# ##########################################################
-# ### Play 13: Customize the second provider
-# #
-# # Customize provider.py for VM1.2
-# ##########################################################
-# - name: 'Play 13: Customize the second provider'
-
-
-# ##########################################################
-# ### Play 14: Run Provider on provider VM's
-# #
-# # Run provider.py on both VM1.1 and VM1.2
-# ##########################################################
-# - name: "Play 14: Run Provider on provider VM's"
-
 ...

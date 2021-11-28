@@ -30,13 +30,16 @@
     ansible.builtin.shell: curl https://bootstrap.pypa.io/get-pip.py | sudo python3
 
   - name: Install packages required to run producer
-    ansible.builtin.pip: name=kafka-python
+    ansible.builtin.pip:
+      name:
+      - kafka-python
+      - jsbeautifier
 
   - name: Copy over the unconfigured producer.py script
     ansible.builtin.copy:
       mode: 0700
       src: ./file_srcs/producer.py
-      dest: /home/vagrant/producer.py
+      dest: ~/producer.py
 
 ##########################################################
 ### Play 2: Write Producer1 script
@@ -59,7 +62,6 @@
       kafkaIp: "{{ hostvars[provisioner_ip]['vm2_ip'] }}"
     ansible.builtin.include_tasks: ./tasks/vms/local-vms/playbook_configure_producer_script.yml
 
-  - name: Replace API key instances with API token
 
 ##########################################################
 ### Play 3: Write the Producer2 script
@@ -72,6 +74,8 @@
   strategy: debug
   vars_files:
   - ./variables/producer_src_config.yml
+  vars:
+    provisioner_ip: "{{ groups['MyLocalVMs'].0 }}"
 
   tasks:
   - name: Configure Producer2 Script
@@ -79,16 +83,28 @@
       config: "{{ weather }}"
       kafkaIp: "{{ hostvars[provisioner_ip]['vm3_ip'] }}"
     ansible.builtin.include_tasks: ./tasks/vms/local-vms/playbook_configure_producer_script.yml
-# ##########################################################
-# ### Play 4: Run Producer on producer VM's
-# #
-# # Run producer.py on both VM1.1 and VM1.2
-# ##########################################################
-# - name: "Play 4: Run Producer on producer VM's"
-#   hosts: AllProducers
-#   remote_user: vagrant
-#   strategy: debug
 
-#   tasks:
-#   - TODO: run the producer!!!
+
+##########################################################
+### Play 4: Run Producer on producer VM's
+#
+# Run producer.py on both VM1.1 and VM1.2
+##########################################################
+- name: "Play 4: Run Producer on producer VM's"
+  hosts: AllProducers
+  remote_user: vagrant
+  strategy: debug
+
+  tasks:
+  - name: Install dos2unix
+    become: yes
+    ansible.builtin.apt:
+      name: dos2unix
+      update_cache: yes
+
+  - name: Run dos2unix on producer script
+    ansible.builtin.shell: dos2unix ~/producer.py
+
+  - name: Run Producer script on producer VMs
+    ansible.builtin.shell: python3 ~/producer.py
 ...

@@ -1,18 +1,31 @@
 ---
 # variables leveraged to configure
 # the base producer.py python source code
+#
+# inserted in the formatted string syntax,
+# i.e. f'string_value' where string_value
+# is the value in the key, value pair
+# and key is the variable name
 weather:
   topic: weather
   base_url: http://api.weatherunlocked.com
   endpoint: /api/current/
   app_id: 5555593e
   api_key: 14054547b923223520f080c7f4747266
-  url_options: f'40.71,-74.00?app_id={app_id}&app_key={api_key}'
+  url_options: 'app_id={app_id}&app_key={api_key}'
+  endpoint_suffix: '{lng},{lat}'
+  loop_based: 'True'
+  loop_logic:
+  - 'lat = random.randint(-90, 90)'
+  - 'lng = random.randint(-180, 180)'
 
 news:
   topic: news
   base_url: http://api.thenewsapi.com
   endpoint: /v1/news/top
   api_key: tNbyCyqzlJLr9as0h54cTZddSi7UZft2Ukjowmjj
-  urlOptions: f'?api_token={api_key}&locale=us'
+  url_options: 'api_token={api_key}&locale=us'
+  endpoint_suffix: ''
+  data_index: 'data'
+  loop_based: 'False'
 ...

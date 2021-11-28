@@ -13,7 +13,26 @@
 - name: Apply Configurations
   ansible.builtin.replace:
     path: "{{ producer_script }}"
-    regexp: "(?<=^{{ item.key }} = \\')[^\\']*"
-    replace: "{{ item.value }}"
+    regexp: "(?<={{ item.key }} = )'[^']*'"
+    replace: "f'{{ item.value }}'"
   loop: "{{ config | combine({ 'bootstrap_server': kafkaIp | default(omit) }) | dict2items }}"
+  when: item.key not in ['loop_logic', 'loop_based']
+
+- name: Configure loop_based assignment
+  ansible.builtin.replace:
+    path: "{{ producer_script }}"
+    regexp: "(?<=loop_based = ).*"
+    replace: "{{ config.loop_based | default('False') }}"
+
+- name: Configure loop iteration count
+  ansible.builtin.replace:
+    path: "{{ producer_script }}"
+    regexp: "(?<=loop_count = ).*"
+    replace: "{{ config.loop_logic | default([]) | length }}"
+
+- name: Configure loop loop_logic
+  ansible.builtin.replace:
+    path: "{{ producer_script }}"
+    regexp: "# insert loop logic here"
+    replace: "{{ config.loop_logic | default([]) | join('\n        ')}}"
 ...

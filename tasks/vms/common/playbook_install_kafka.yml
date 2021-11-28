@@ -9,12 +9,7 @@
 
 - name: Install OpenJDK
   become: yes
-  ansible.builtin.apt:
-    name: openjdk-11-jdk
-    update_cache: yes
-    # TODO: drop this option when you add the aptitude upgrades back in!
-  # TODO: i.e. replace those 3 lines with this line vvv:
-  # ansible.builtin.apt: name=openjdk-11-jdk
+  ansible.builtin.apt: name=openjdk-11-jdk
 
 - name: Include Path-Name Vars
   ansible.builtin.include_vars: ../../../variables/path_names.yml

@@ -13,6 +13,4 @@
   ansible.builtin.apt:
     upgrade: dist
     update_cache: yes
-  when: false
-  # TODO: probably a good idea, leaving it out for now for efficiency...
 ...

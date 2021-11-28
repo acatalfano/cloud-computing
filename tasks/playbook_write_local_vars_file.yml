@@ -23,17 +23,4 @@
     path: "{{ local_vm_variables }}"
     line: "---\n{{ running_instance_ids }}: {{ hostvars[inventory_hostname].ec2.instance_ids }}\n..."
     create: yes
-
-- name: "testing... what is hostvars[inventory_hostname].ec2.instance_ids???"
-  ansible.builtin.debug:
-    var: hostvars[inventory_hostname].ec2.instance_ids
-
-- name: "testing... what is is ec2.instance_ids"
-  ansible.builtin.debug:
-    var: ec2.instance_ids
-
-- name: "make it stop early"
-  ansible.builtin.debug:
-    var: xyz
-
 ...
