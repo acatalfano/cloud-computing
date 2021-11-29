@@ -5,7 +5,7 @@
 # inserted in the formatted string syntax,
 # i.e. f'string_value' where string_value
 # is the value in the key, value pair
-# and key is the variable name
+# and key is the (python) variable name
 weather:
   topic: weather
   base_url: http://api.weatherunlocked.com
@@ -14,10 +14,11 @@ weather:
   api_key: 14054547b923223520f080c7f4747266
   url_options: 'app_id={app_id}&app_key={api_key}'
   endpoint_suffix: '{lng},{lat}'
-  loop_based: 'True'
   loop_logic:
   - 'lat = random.randint(-90, 90)'
   - 'lng = random.randint(-180, 180)'
+  literals:
+    batch_call: 'False'
 
 news:
   topic: news
@@ -27,5 +28,7 @@ news:
   url_options: 'api_token={api_key}&locale=us'
   endpoint_suffix: ''
   data_index: 'data'
-  loop_based: 'False'
+  literals:
+    batch_call: 'True'
+    loop_count: 10
 ...

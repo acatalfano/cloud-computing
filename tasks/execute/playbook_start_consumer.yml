@@ -25,5 +25,5 @@
     COUCH_DB_IP: "{{ couchDB_ip }}"
     KAFKA_1_IP: "{{ zookeeper_ip }}"
     KAFKA_2_IP: "{{ couchDB_ip }}"
-  ansible.builtin.shell: daemon python3 ./consumer.py &
+  ansible.builtin.shell: daemon python3 ~/consumer.py -l ~/daemon_error_consumer.out -b ~/daemon_debug_consumer.out -o ~/client_out_consumer.out -O ~/client_stdout_consumer.out -E ~/client_stderr_consumer.out
 ...

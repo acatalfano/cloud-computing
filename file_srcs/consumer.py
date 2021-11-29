@@ -14,7 +14,11 @@ kafka_ips = [kafka_1_ip, kafka_2_ip]
 couch_db_port = '5984'
 kafka_port = '9092'
 
-couch = couchdb.Server(f'http://admin:admin@{couch_db_ip}:{couch_db_port}/')
+username = 'USERNAME'
+password = 'PASSWORD'
+
+couch = couchdb.Server(
+    f'http://{username}:{password}@{couch_db_ip}:{couch_db_port}/')
 
 beautifier_opts = jsbeautifier.default_options()
 beautifier_opts.indent_size = 2

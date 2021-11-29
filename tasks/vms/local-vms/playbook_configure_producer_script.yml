@@ -10,25 +10,20 @@
 - name: Include Path-Name Variables
   ansible.builtin.include_vars: ../../../variables/path_names.yml
 
-- name: Apply Configurations
+- name: Apply format-string-based Configurations
   ansible.builtin.replace:
     path: "{{ producer_script }}"
     regexp: "(?<={{ item.key }} = )'[^']*'"
     replace: "f'{{ item.value }}'"
   loop: "{{ config | combine({ 'bootstrap_server': kafkaIp | default(omit) }) | dict2items }}"
-  when: item.key not in ['loop_logic', 'loop_based']
+  when: item.key not in ['loop_logic', 'literals']
 
-- name: Configure loop_based assignment
+- name: Apply literal-based Configurations
   ansible.builtin.replace:
     path: "{{ producer_script }}"
-    regexp: "(?<=loop_based = ).*"
-    replace: "{{ config.loop_based | default('False') }}"
-
-- name: Configure loop iteration count
-  ansible.builtin.replace:
-    path: "{{ producer_script }}"
-    regexp: "(?<=loop_count = ).*"
-    replace: "{{ config.loop_logic | default([]) | length }}"
+    regexp: "(?<={{ item.key }} = ).*"
+    replace: "{{ item.value }}"
+  loop: "{{ config.literals | dict2items }}"
 
 - name: Configure loop loop_logic
   ansible.builtin.replace:

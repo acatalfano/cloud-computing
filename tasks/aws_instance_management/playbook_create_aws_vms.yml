@@ -16,7 +16,7 @@
 - name: Provision AWS instances
   amazon.aws.ec2:
     key_name: "{{ key_name }}"
-    group: "{{ security_group }}"
+    group: "{{ security_groups }}"
     instance_type: "{{ instance_type }}"
     image: "{{ image }}"
     wait: yes

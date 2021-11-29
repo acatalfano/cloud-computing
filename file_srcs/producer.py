@@ -8,6 +8,7 @@ import logging
 import json
 import jsbeautifier
 import random
+import pprint
 
 
 def produce() -> None:
@@ -23,9 +24,9 @@ def produce() -> None:
     producer = KafkaProducer(
         bootstrap_servers=[f'{bootstrap_server}:{kafka_port}'])
 
-    loop_based: bool = False
+    batch_call: bool = False
 
-    data = batch_call_data() if loop_based else multi_call_data()
+    data = batch_call_data() if batch_call else multi_call_data()
 
     beautifier_opts = jsbeautifier.default_options()
     beautifier_opts.indent_size = 2
@@ -42,28 +43,28 @@ def produce() -> None:
 
 
 def multi_call_data() -> list:
-    # global app_id, api_key, base_url, endpoint, request_url, url_options
-    loop_count = 0
+    loop_count = 10
     data = []
     for _ in range(0, loop_count):
         # next comment is a synchronization point, to be leveraged by ansible
         # insert loop logic here
         endpoint_suffix = 'endpoint_suffix'
-        response = requests.get(build_url(endpoint_suffix))  # (request_url)
-        if response:
+        response = requests.get(build_url(endpoint_suffix))
+        if valid_status_code(response):
+            datum = response.json()
             timestamp = datetime.timestamp(datetime.utcnow())
-            response['timestamp'] = timestamp
-            data.append(response)
+            datum['timestamp'] = timestamp
+            data.append(datum)
 
     return data
 
 
 def batch_call_data() -> list:
-    # global app_id, api_key, base_url, data_index, endpoint, request_url, url_options
     endpoint_suffix = 'endpoint_suffix'
-    response = requests.get(build_url(endpoint_suffix))  # (request_url)
+    data_index = 'DATA_INDEX'
+    response = requests.get(build_url(endpoint_suffix))
 
-    data = response.json()[data_index] if response else []
+    data = response.json()[data_index] if valid_status_code(response) else []
 
     for datum in data:
         # timestamp event was sent
@@ -77,10 +78,13 @@ def build_url(endpoint_suffix: str) -> str:
     app_id = 'APP_ID'
     api_key = 'API_KEY'
     base_url = 'api_url'
-    data_index = 'DATA_INDEX'
     endpoint = 'api_endpoint'
     url_options = 'url_options'
     return f'{base_url}{endpoint}{endpoint_suffix}?{url_options}'
+
+
+def valid_status_code(response: requests.Response) -> bool:
+    return bool(response) and response.status_code >= 200 and response.status_code < 300
 
 
 if __name__ == '__main__':

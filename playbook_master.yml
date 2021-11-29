@@ -106,6 +106,18 @@
       src: file_srcs/consumer.py
       dest: ~/consumer.py
 
+  - name: set couchDB username variable in consumer.py
+    ansible.builtin.replace:
+      path: ~/consumer.py
+      regexp: (?<=username = ')[^']*(?=')
+      replace: admin
+
+  - name: set couchDB password variable in consumer.py
+    ansible.builtin.replace:
+      path: ~/consumer.py
+      regexp: (?<=password = ')[^']*(?=')
+      replace: admin%20password
+
 
 ##########################################################
 ### Play 6: Install Dependencies on the VM3 Cloud Instance
