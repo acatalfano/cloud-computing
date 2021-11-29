@@ -1,0 +1,9 @@
+---
+kafka_directory: ~/_kafka
+kafka_server_start: ~/_kafka/bin/kafka-server-start.sh
+kafka_server_properties: ~/_kafka/config/server.properties
+zookeeper_server_start: ~/_kafka/bin/zookeeper-server-start.sh
+zookeeper_properties: ~/_kafka/config/zookeeper.properties
+local_vm_variables: ~/local_vars
+producer_script: ~/producer.py
+...

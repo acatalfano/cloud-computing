@@ -1,0 +1,24 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano, AJ
+# Created: Fall 2021
+#
+# Destroy EC2 Instances based on local variable file's stored IDs
+#
+
+- include_tasks: playbook_load_vars_from_file.yml
+
+- name: Clean up provisioned Cloud Instances
+  vars:
+    ids: "{{ lookup('vars', running_instance_ids) }}"
+  amazon.aws.ec2:
+    region: "{{ region }}"
+    state: absent
+    instance_ids: "{{ ids }}"
+
+- name: delete local VM variables file to signify success
+  ansible.builtin.file:
+    path: "{{ local_vm_variables }}"
+    state: absent
+...
