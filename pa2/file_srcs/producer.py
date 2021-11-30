@@ -24,7 +24,7 @@ def produce() -> None:
     producer = KafkaProducer(
         bootstrap_servers=[f'{bootstrap_server}:{kafka_port}'])
 
-    batch_call: bool = False
+    batch_call = 'canary'
 
     data = batch_call_data() if batch_call else multi_call_data()
 
@@ -43,7 +43,7 @@ def produce() -> None:
 
 
 def multi_call_data() -> list:
-    loop_count = 10
+    loop_count = 'canary'
     data = []
     for _ in range(0, loop_count):
         # next comment is a synchronization point, to be leveraged by ansible
@@ -55,7 +55,6 @@ def multi_call_data() -> list:
             timestamp = datetime.timestamp(datetime.utcnow())
             datum['timestamp'] = timestamp
             data.append(datum)
-
     return data
 
 

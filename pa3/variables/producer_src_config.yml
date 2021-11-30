@@ -19,6 +19,7 @@ weather:
   - 'lng = random.randint(-180, 180)'
   literals:
     batch_call: 'False'
+    loop_count: 10
 
 news:
   topic: news
@@ -30,5 +31,4 @@ news:
   data_index: 'data'
   literals:
     batch_call: 'True'
-    loop_count: 10
 ...
