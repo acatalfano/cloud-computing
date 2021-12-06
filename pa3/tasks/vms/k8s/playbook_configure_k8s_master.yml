@@ -1,0 +1,70 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano, AJ
+# Created: Fall 2021
+#
+# copy over kubernetes files and install kubernetes + dependencies
+#
+
+- name: Include Path-Name Vars
+  ansible.builtin.include_vars: ../../../variables/path_names.yml
+
+- name: Copy containers directory to remote
+  # become: yes
+  ansible.builtin.copy:
+    src: ../../../file_srcs/containers/
+    # dest: ~/containers
+    dest: "{{ containers_directory }}"
+    # owner: ubuntu
+    # group: ubuntu
+    # mode: 0110
+    # directory_mode: 0660
+
+- name: Add Kubernetes GPG Key
+  become: yes
+  ansible.builtin.apt_key:
+    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+
+- name: Add Kubernetes Repository
+  become: yes
+  ansible.builtin.apt_repository:
+    repo: deb http://apt.kubernetes.io/ kubernetes-xenial main
+
+
+- name: Install Docker and Kubernetes
+  become: yes
+  ansible.builtin.apt:
+    name:
+    - docker.io
+    # - apt-transport-https
+    # - curl
+    - kubeadm
+    - kubelet
+    - kubectl
+    - kubernetes-cni
+
+
+- name: Configure docker to use systemd-based Cgroup driver
+  become: yes
+  ansible.builtin.lineinfile:
+    path: /lib/systemd/system/docker.service
+    regexp: '(^ExecStart\b.*)$'
+    line: '\1 --exec-opt native.cgroupdriver=systemd'
+    backrefs: yes
+
+- name: Add user to docker group
+  become: yes
+  ansible.builtin.shell: usermod -aG docker $USER
+
+- name: restart docker
+  become: yes
+  ansible.builtin.shell: |
+    systemctl daemon-reload
+    systemctl restart docker
+    systemctl enable docker
+
+- name: Turn off swap
+  become: yes
+  ansible.builtin.shell: swapoff -a
+...

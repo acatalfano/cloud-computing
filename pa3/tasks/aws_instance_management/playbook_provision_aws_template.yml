@@ -1,0 +1,46 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano, AJ
+# Created: Fall 2021
+#
+# Create EC2 instances on AWS
+#
+# REQUIRES:
+#     instance_flavor - an AWS EC2 flavor
+#     instance_fact_name - a string defining the name of the fact that contains the created instance id
+#     sec_group_list - a list of security groups
+#     name - instance name
+
+# - name: Provision AWS instances
+#   amazon.aws.ec2:
+#     key_name: "{{ key_name }}"
+#     group: "{{ sec_group_list }}"
+#     instance_type: "{{ instance_flavor }}"
+#     image: "{{ image }}"
+#     wait: yes
+#     region: "{{ region }}"
+#     vpc_subnet_id: "{{ subnet }}"
+#     assign_public_ip: yes
+#   register: ec2
+
+
+- name: Provision AWS instances
+  amazon.aws.ec2_instance:
+    name: "{{ name }}"
+    key_name: "{{ key_name }}"
+    security_groups: "{{ sec_group_list }}"
+    instance_type: "{{ instance_flavor }}"
+    image_id: "{{ image }}"
+    region: "{{ region }}"
+    vpc_subnet_id: "{{ subnet }}"
+    network:
+      assign_public_ip: yes
+    state: running
+    # wait: yes
+  register: ec2
+
+- name: Create EC2 Instance Fact
+  ansible.builtin.set_fact:
+    "{{ instance_fact_name }}": "{{ ec2.instances.0 }}"
+...

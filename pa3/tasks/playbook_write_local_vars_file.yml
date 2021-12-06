@@ -6,7 +6,7 @@
 #
 # Write the created instances to an inventory file, deleting it first if it exists
 #
-# NOTE: Requires ec2.instance_ids to be loaded up with the EC2 ID's
+# REQUIRES: instance_ids -- list of AWS EC2 Instance ID's
 #
 
 - name: Include Path Name Vars
@@ -21,6 +21,6 @@
 - name: Write EC2 ID's to Variables File as an array variable
   ansible.builtin.lineinfile:
     path: "{{ local_vm_variables }}"
-    line: "---\n{{ running_instance_ids }}: {{ hostvars[inventory_hostname].ec2.instance_ids }}\n..."
+    line: "---\n{{ running_instance_ids }}: {{ instance_ids }}\n..."
     create: yes
 ...

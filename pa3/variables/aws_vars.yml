@@ -1,10 +1,123 @@
 ---
 key_name: Default_KeyPair
-instance_type: t2.micro
+master_instance_type: t2.medium
+regular_instance_type: t2.micro
+couch_db_SG:
+  name: CouchDB_Traffic
+  description: Traffic for CouchDB
+  in_rules:
+  - ip: 0.0.0.0/0
+    port_range: '5984'
+    proto: tcp
+    description: couchDB inbound traffic
+  out_rules:
+  - ip: 0.0.0.0/0
+    port_range: '5984'
+    proto: tcp
+    description: couchDB outbound traffic
+kafka_SG:
+  name: Kafka_Traffic
+  description: Listen for traffic from Kafka
+  in_rules:
+  - ip: 0.0.0.0/0
+    port_range: '9092'
+    proto: tcp
+    description: Kafka inbound traffic
+  out_rules:
+  - ip: 0.0.0.0/0
+    port_range: '9092'
+    proto: tcp
+    description: Kafka outbound traffic
+zookeeper_SG:
+  name: Zookeeper_traffic
+  description: Traffic for zookeeper
+  in_rules:
+  - ip: 0.0.0.0/0
+    port_range: '2181'
+    proto: tcp
+    description: Zookeeper port ingress
+  out_rules:
+  - ip: 0.0.0.0/0
+    port_range: '2181'
+    proto: tcp
+    description: Zookeeper port egress
+k8s_control_SG:
+  name: k8s_control
+  description: Traffic for Kubernetes Master
+  in_rules:
+  - ip: 0.0.0.0/0
+    port_range: '6443'
+    proto: tcp
+    description: k8s api server
+  - ip: 0.0.0.0/0
+    port_range: 2379-2380
+    proto: tcp
+    description: etcd server client api
+  - ip: 0.0.0.0/0
+    port_range: '10250'
+    proto: tcp
+    description: kubelet api
+  - ip: 0.0.0.0/0
+    port_range: '10259'
+    proto: tcp
+    description: kube-scheduler
+  - ip: 0.0.0.0/0
+    port_range: '10257'
+    proto: tcp
+    description: kube-controller-manager
+k8s_worker_SG:
+  name: k8s_worker
+  description: Traffic for Kubernetes Worker
+  in_rules:
+  - ip: 0.0.0.0/0
+    port_range: '10250'
+    proto: tcp
+    description: kubelet api
+  - ip: 0.0.0.0/0
+    port_range: 30000-32767
+    proto: tcp
+    description: nodePort services
+ssh_SG:
+  name: ssh
+  description: allow SSH traffic
+  in_rules:
+  - ip: 0.0.0.0/0
+    port_range: '22'
+    proto: tcp
+    description: SSH ingress
+ftp_SG:
+  name: FTP
+  description: allow FTP traffic
+  out_rules:
+  - ip: 0.0.0.0/0
+    port_range: '20'
+    proto: tcp
+    description: FTP ingress
+http_SG:
+  name: HTTP
+  description: allow HTTP traffic
+  out_rules:
+  - ip: 0.0.0.0/0
+    port_range: '80'
+    proto: tcp
+    description: HTTP egress
+  - ip: 0.0.0.0/0
+    port_range: '443'
+    proto: tcp
+    description: HTTPS egress
+
 security_groups:
-- DANGER__tempLazyPermitEverything
-- CouchDB_Traffic
+- "{{ ssh_SG }}"
+- "{{ ftp_SG }}"
+- "{{ http_SG }}"
+- "{{ couch_db_SG }}"
+- "{{ k8s_control_SG }}"
+- "{{ k8s_worker_SG }}"
+- "{{ zookeeper_SG }}"
+- "{{ kafka_SG }}"
+
 image: ami-09e67e426f25ce0d7
 region: us-east-1
 subnet: subnet-8d4cb2c1
+vpc_id: vpc-895822f4
 ...

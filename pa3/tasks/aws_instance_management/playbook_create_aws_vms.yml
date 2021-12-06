@@ -7,44 +7,68 @@
 # Create EC2 instances on AWS
 #
 
-- name: Include AWS variables
-  ansible.builtin.include_vars: ../../variables/aws_vars.yml
-
 - name: Include Group Name variables
   ansible.builtin.include_vars: ../../variables/group_names.yml
 
-- name: Provision AWS instances
-  amazon.aws.ec2:
-    key_name: "{{ key_name }}"
-    group: "{{ security_groups }}"
-    instance_type: "{{ instance_type }}"
-    image: "{{ image }}"
-    wait: yes
-    region: "{{ region }}"
-    vpc_subnet_id: "{{ subnet }}"
-    assign_public_ip: yes
-    count: 2
-  register: ec2
+- name: Include AWS variables
+  ansible.builtin.include_vars: ../../variables/aws_vars.yml
+
+- name: Provision master/vm2 instance
+  vars:
+    name: master_vm2
+    instance_flavor: "{{ master_instance_type }}"
+    instance_fact_name: master_instance
+    sec_group_list:
+    - "{{ ssh_SG.name }}"
+    - "{{ ftp_SG.name }}"
+    - "{{ http_SG.name }}"
+    - "{{ k8s_control_SG.name }}"
+    - "{{ zookeeper_SG.name }}"
+    - "{{ kafka_SG.name }}"
+    - "{{ couch_db_SG.name }}"
+  ansible.builtin.include_tasks: ./playbook_provision_aws_template.yml
+
+- name: Provision vm3 (non-master) instance
+  vars:
+    name: worker_vm3
+    instance_flavor: "{{ regular_instance_type }}"
+    instance_fact_name: regular_instance
+    sec_group_list:
+    - "{{ ssh_SG.name }}"
+    - "{{ ftp_SG.name }}"
+    - "{{ http_SG.name }}"
+    - "{{ couch_db_SG.name }}"
+    - "{{ k8s_worker_SG.name }}"
+    - "{{ zookeeper_SG.name }}"
+    - "{{ kafka_SG.name }}"
+  ansible.builtin.include_tasks: ./playbook_provision_aws_template.yml
+
+- name: debug master_instance
+  debug:
+    var: master_instance
+
+- name: debug regular_instance
+  debug:
+    var: regular_instance
 
 - name: Add new instances to all_remote group
   ansible.builtin.add_host:
-    hostname: "{{ item.public_ip }}"
+    hostname: "{{ item.public_ip_address }}"
     groupname: "{{ all_remote }}"
-  loop: "{{ ec2.instances }}"
+  loop: [ "{{ master_instance }}", "{{ regular_instance }}" ]
 
 - name: Add instances to appropriate vm2 and vm3 groups
   ansible.builtin.add_host:
-    hostname: "{{ item.0.public_ip }}"
+    hostname: "{{ item.0.public_ip_address }}"
     groupname: "{{ item.1 }}"
   with_together:
-    - "{{ ec2.instances }}"
-    - [ "{{ kafka1_zookeeper_consumer }}", "{{ kafka2_couchDB }}" ]
+  - [ "{{ master_instance }}", "{{ regular_instance }}" ]
+  - [ "{{ kafka1_zookeeper_consumer }}", "{{ kafka2_couchDB }}" ]
 
 - name: set ips as facts
   ansible.builtin.set_fact:
-    "{{ zookeeper_ip }}": "{{ ec2.instances.0.public_ip }}"
-    "{{ couchdb_ip }}": "{{ ec2.instances.1.public_ip }}"
-
+    "{{ zookeeper_ip }}": "{{ master_instance.public_ip_address }}"
+    "{{ couchdb_ip }}": "{{ regular_instance.public_ip_address }}"
 
 - name: Pause for deployment
   ansible.builtin.pause:
@@ -57,15 +81,20 @@
     timeout: 60
     port: 22
     state: started
-  loop: "{{ ec2.instances }}"
+  loop: [ "{{ master_instance }}", "{{ regular_instance }}" ]
 
 - name: Include Local Var Names
   ansible.builtin.include_vars: ../../variables/local_var_names.yml
 
 - name: Set IDs Fact
   ansible.builtin.set_fact:
-    key_value: "{{ running_instance_ids }}: {{ ec2.instances }}"
+    key_value: "{{ running_instance_ids }}: [ {{ master_instance }}, {{ regular_instance }} ]"
+
 
 - name: Write EC2 IDs to local variables file
+  vars:
+    instance_ids:
+    - "{{ master_instance.instance_id }}"
+    - "{{ regular_instance.instance_id }}"
   ansible.builtin.include_tasks: ../playbook_write_local_vars_file.yml
 ...

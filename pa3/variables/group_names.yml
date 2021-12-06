@@ -2,4 +2,6 @@
 all_remote: all_remote
 kafka1_zookeeper_consumer: vm2
 kafka2_couchDB: vm3
+k8s_master: vm2 # reused for loose-coupling and clarity
+k8s_slave: vm3 # reused for loose-coupling and clarity
 ...

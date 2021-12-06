@@ -11,12 +11,12 @@
 # this playbook does nothing
 #
 
-##########################################################
+#####################################################################
 ### Play 1: Cleanup provisioned instances
 #
 # Read AWS EC2 id's from variables file
 # and destroy previously created instances
-##########################################################
+#####################################################################
 
 - name: Clean up provisioned Cloud Instances
   hosts: MyLocalVMs
@@ -24,6 +24,7 @@
   vars_files:
   - variables/path_names.yml
   - variables/local_var_names.yml
+  - variables/aws_vars.yml
 
   tasks:
   - name: Check if Local Var Names File exists

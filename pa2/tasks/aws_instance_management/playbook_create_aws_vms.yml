@@ -45,7 +45,6 @@
     "{{ zookeeper_ip }}": "{{ ec2.instances.0.public_ip }}"
     "{{ couchdb_ip }}": "{{ ec2.instances.1.public_ip }}"
 
-
 - name: Pause for deployment
   ansible.builtin.pause:
     seconds: 30

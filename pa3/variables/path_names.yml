@@ -6,4 +6,5 @@ zookeeper_server_start: ~/_kafka/bin/zookeeper-server-start.sh
 zookeeper_properties: ~/_kafka/config/zookeeper.properties
 local_vm_variables: ~/local_vars
 producer_script: ~/producer.py
+containers_directory: ~/containers
 ...

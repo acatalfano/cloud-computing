@@ -11,25 +11,25 @@
 #     kafka1 = VM2 = kafka/zookeeper/consumer instance
 #     kafka2 = VM3 = kafka/couchDB instance
 
-##########################################################
+#####################################################################
 ### Play 1: Terminate Any Existing Cloud Instances
 #
 # Run the cleanup master playbook to cleanup
 # any remote instances if they exist
-##########################################################
+#####################################################################
 - name: 'Play 1: Terminate Any Existing Cloud Instances'
   ansible.builtin.import_playbook: playbook_master_cleanup.yml
 
-##########################################################
+#####################################################################
 ### Play 2: Install/Configure Base Dependencies
 #
 # Install pip, configure python to point to python3,
 # Install python packages boto3 and botocore
-##########################################################
+#####################################################################
 - name: 'Play 2: Install and Configure Base Dependencies'
   hosts: MyLocalVMs
   remote_user: ubuntu
-  strategy: debug
+  # strategy: debug
 
   tasks:
   - ansible.builtin.include_tasks: tasks/playbook_aptitude_upgrade.yml
@@ -44,181 +44,237 @@
         - botocore
 
 
-##########################################################
+#####################################################################
+### Play 3: Create EC2 Security Groups
+#
+# Create Security Groups on AWS
+#####################################################################
+- name: 'Play 3: Create EC2 Security Groups'
+  hosts: MyLocalVMs
+  remote_user: ubuntu
+  strategy: debug
+  vars_files:
+  - variables/aws_vars.yml
+  collections:
+  - amazon.aws
+
+  tasks:
+  - ansible.builtin.include_tasks: tasks/aws_instance_management/playbook_create_security_groups.yml
+
+#####################################################################
 ### Play 3: Provision Cloud Instances
 #
 # Provision instance for the CouchDB/Kafka host
 # and instance for the Zookeeper/Kafka/Consumer host
-##########################################################
+#####################################################################
 - name: 'Play 3: Create AWS EC2 Instances'
   hosts: MyLocalVMs
   remote_user: ubuntu
   vars:
     zookeeper_ip: vm2_ip
     couchdb_ip: vm3_ip
-  strategy: debug
+  # strategy: debug
   collections:
   - amazon.aws
 
   tasks:
   - ansible.builtin.include_tasks: tasks/aws_instance_management/playbook_create_aws_vms.yml
 
-##########################################################
+#####################################################################
 ### Play 4: Install Common Dependencies on all Cloud Instances
 #
 # Aptitude Upgrade and Install Kafka on cloud instances
-##########################################################
-- name: 'Play 4: Install Common Dependencies on all Cloud Instances'
-  hosts: "{{ all_remote }}"
-  remote_user: ubuntu
-  vars_files:
-  - variables/path_names.yml
-  - variables/group_names.yml
-  collections:
-  - amazon.aws
-  strategy: debug
-  tasks:
-  - ansible.builtin.include_tasks: tasks/playbook_aptitude_upgrade.yml
-  - ansible.builtin.include_tasks: tasks/vms/common/playbook_install_kafka.yml
-  - ansible.builtin.include_tasks: tasks/vms/common/playbook_common_kafka_configs.yml
-  - name: Install daemon for running programs later (without termination)
-    become: yes
-    ansible.builtin.apt: name=daemon
+#####################################################################
+# - name: 'Play 4: Install Common Dependencies on all Cloud Instances'
+#   hosts: "{{ all_remote }}"
+#   remote_user: ubuntu
+#   vars_files:
+#   - variables/path_names.yml
+#   - variables/group_names.yml
+#   collections:
+#   - amazon.aws
+#   # strategy: debug
+#   tasks:
+#   - ansible.builtin.include_tasks: tasks/playbook_aptitude_upgrade.yml
+#   - ansible.builtin.include_tasks: tasks/vms/common/playbook_install_kafka.yml
+#   - ansible.builtin.include_tasks: tasks/vms/common/playbook_common_kafka_configs.yml
+#   - name: Install daemon for running programs later (without termination)
+#     become: yes
+#     ansible.builtin.apt: name=daemon
 
-##########################################################
+#####################################################################
 ### Play 5: Install Dependencies on the VM3 Cloud Instance
 #
 # Install Zookeeper and Kafka on the Zookeeper/Kafka/Consumer host
 # Add and configure the consumer file
-##########################################################
-- name: 'Play 5: Install Dependencies on Zookeeper/Kafka/Consumer Cloud Instance'
-  hosts: "{{ kafka1_zookeeper_consumer }}"
-  remote_user: ubuntu
-  vars_files:
-  - variables/group_names.yml
-  strategy: debug
-  tasks:
-  - ansible.builtin.include_tasks: tasks/vms/vm2/playbook_configure_zookeeper.yml
-  - ansible.builtin.include_tasks: tasks/vms/vm2/playbook_install_python_dependencies.yml
+#####################################################################
+# - name: 'Play 5: Install Dependencies on Zookeeper/Kafka/Consumer Cloud Instance'
+#   hosts: "{{ kafka1_zookeeper_consumer }}"
+#   remote_user: ubuntu
+#   vars_files:
+#   - variables/group_names.yml
+#   # strategy: debug
+#   tasks:
+#   - ansible.builtin.include_tasks: tasks/vms/vm2/playbook_configure_zookeeper.yml
+#   - ansible.builtin.include_tasks: tasks/vms/vm2/playbook_install_python_dependencies.yml
 
-  - name: copy consumer.py over to remote instance
-    ansible.builtin.copy:
-      src: file_srcs/consumer.py
-      dest: ~/consumer.py
+#   - name: copy consumer.py over to remote instance
+#     ansible.builtin.copy:
+#       src: file_srcs/consumer.py
+#       dest: ~/consumer.py
 
-  - name: set couchDB username variable in consumer.py
-    ansible.builtin.replace:
-      path: ~/consumer.py
-      regexp: (?<=username = ')[^']*(?=')
-      replace: admin
+#   - name: set couchDB username variable in consumer.py
+#     ansible.builtin.replace:
+#       path: ~/consumer.py
+#       regexp: (?<=username = ')[^']*(?=')
+#       replace: admin
 
-  - name: set couchDB password variable in consumer.py
-    ansible.builtin.replace:
-      path: ~/consumer.py
-      regexp: (?<=password = ')[^']*(?=')
-      replace: admin%20password
+#   - name: set couchDB password variable in consumer.py
+#     ansible.builtin.replace:
+#       path: ~/consumer.py
+#       regexp: (?<=password = ')[^']*(?=')
+#       replace: admin%20password
 
-
-##########################################################
-### Play 6: Install Dependencies on the VM3 Cloud Instance
+#####################################################################
+### Play 6: Install Dependencies on the K8S Master Cloud Instance
 #
 # Install and configure CouchDB and Kafka on the CouchDB/Kafka host
-##########################################################
-- name: 'Play 6: Install Dependencies on CouchDB/Kafka Cloud Instance'
-  hosts: "{{ kafka2_couchDB }}"
+#####################################################################
+- name: 'Play 6: Install Dependencies on the K8S Master Cloud Instance'
+  hosts: "{{ k8s_master }}"
   remote_user: ubuntu
   vars_files:
   - variables/group_names.yml
   strategy: debug
   tasks:
-  - ansible.builtin.include_tasks: tasks/vms/vm3/playbook_install_couchdb.yml
+  - name: Set Hostname Aliases on K8S Master
+    become: yes
+    ansible.builtin.lineinfile:
+      path: /etc/hosts
+      line: "{{ inventory_hostname }} kubemaster kubeworker1"
 
-  - ansible.builtin.include_tasks: tasks/vms/vm3/playbook_configure_couchdb.yml
-    vars:
-      password: admin password
+  - name: Install Docker and K8S
+    ansible.builtin.include_tasks: tasks/vms/k8s/playbook_configure_k8s_master.yml
+
+#####################################################################
+### Play 7: Configure K8S Slave Hostname Aliases
+#
+# Set Hostname Aliases on slave nodes for master's use
+#####################################################################
+- name: 'Play 7: Configure K8S Slave Hostname Aliases'
+  hosts: "{{ k8s_slave }}"
+  remote_user: ubuntu
+  vars_files:
+  - variables/group_names.yml
+  strategy: debug
+  tasks:
+  - name: Add line to hosts file
+    become: yes
+    ansible.builtin.lineinfile:
+      path: /etc/hosts
+      line: "{{ inventory_hostname }} kubeworker2"
 
 
-##########################################################
-### Play 7: Start Zookeeper on the VM2 Cloud Instance
+#####################################################################
+### Play 7: Install Dependencies on the VM3 Cloud Instance
+#
+# Install and configure CouchDB and Kafka on the CouchDB/Kafka host
+#####################################################################
+# - name: 'Play 7: Install Dependencies on CouchDB/Kafka Cloud Instance'
+#   hosts: "{{ kafka2_couchDB }}"
+#   remote_user: ubuntu
+#   vars_files:
+#   - variables/group_names.yml
+#   # strategy: debug
+#   tasks:
+#   - ansible.builtin.include_tasks: tasks/vms/vm3/playbook_install_couchdb.yml
+
+#   - ansible.builtin.include_tasks: tasks/vms/vm3/playbook_configure_couchdb.yml
+#     vars:
+#       password: admin password
+
+
+#####################################################################
+### Play 8: Start Zookeeper on the VM2 Cloud Instance
 #
 # Start Zookeeper on the Zookeeper/Kafka/Consumer host
-##########################################################
-- name: 'Play 7: Install Dependencies on CouchDB/Kafka Cloud Instance'
-  hosts: "{{ kafka1_zookeeper_consumer }}"
-  remote_user: ubuntu
-  vars_files:
-  - variables/group_names.yml
-  - variables/path_names.yml
-  strategy: debug
-  tasks:
-  - name: Start Zookeeper
-    ansible.builtin.shell: "daemon -- {{ kafka_directory }}/bin/zookeeper-server-start.sh {{ kafka_directory }}/config/zookeeper.properties"
+#####################################################################
+# - name: 'Play 8: Install Dependencies on CouchDB/Kafka Cloud Instance'
+#   hosts: "{{ kafka1_zookeeper_consumer }}"
+#   remote_user: ubuntu
+#   vars_files:
+#   - variables/group_names.yml
+#   - variables/path_names.yml
+#   # strategy: debug
+#   tasks:
+#   - name: Start Zookeeper
+#     ansible.builtin.shell: "daemon -- {{ kafka_directory }}/bin/zookeeper-server-start.sh {{ kafka_directory }}/config/zookeeper.properties"
 
 
 
-##########################################################
-### Play 8: Run CouchDB on vm3
+#####################################################################
+### Play 9: Run CouchDB on vm3
 #
 # Start up CouchDB on the Zookeeper/Kafka host
-##########################################################
-- name: 'Play 8: Run CouchDB on vm3'
-  hosts: "{{ kafka2_couchDB }}"
-  remote_user: ubuntu
-  vars_files:
-  - variables/group_names.yml
-  tasks:
-  - name: Start The CouchDB Service
-    become: yes
-    service:
-      name: couchdb
-      state: restarted
+#####################################################################
+# - name: 'Play 9: Run CouchDB on vm3'
+#   hosts: "{{ kafka2_couchDB }}"
+#   remote_user: ubuntu
+#   vars_files:
+#   - variables/group_names.yml
+#   tasks:
+#   - name: Start The CouchDB Service
+#     become: yes
+#     service:
+#       name: couchdb
+#       state: restarted
 
 
-# ##########################################################
-# ### Play 9: Run Kafka on all remotes
-# #
-# # Start up Kafka on all remote hosts
-# ##########################################################
-- name: 'Play 9: Run Kafka on all remote hosts'
-  hosts: "{{ all_remote }}"
-  remote_user: ubuntu
-  vars_files:
-  - variables/group_names.yml
-  - variables/path_names.yml
-  vars:
-    provisioner_ip: "{{ groups['MyLocalVMs'].0 }}"
-  tasks:
-  - ansible.builtin.include_tasks: tasks/execute/playbook_start_kafka.yml
-    vars:
-      zookeeper_ip: "{{ hostvars[provisioner_ip]['vm2_ip'] }}"
+#####################################################################
+### Play 10: Run Kafka on all remotes
+#
+# Start up Kafka on all remote hosts
+#####################################################################
+# - name: 'Play 10: Run Kafka on all remote hosts'
+#   hosts: "{{ all_remote }}"
+#   remote_user: ubuntu
+#   vars_files:
+#   - variables/group_names.yml
+#   - variables/path_names.yml
+#   vars:
+#     provisioner_ip: "{{ groups['MyLocalVMs'].0 }}"
+#   tasks:
+#   - ansible.builtin.include_tasks: tasks/execute/playbook_start_kafka.yml
+#     vars:
+#       zookeeper_ip: "{{ hostvars[provisioner_ip]['vm2_ip'] }}"
 
 
-##########################################################
-### Play 10: Run Kafka and Consumer on vm2
+#####################################################################
+### Play 11: Run Kafka and Consumer on vm2
 #
 # Start up Consumer on the Zookeeper/Kafka/Consumer host
-##########################################################
-- name: 'Play 10: Run Consumer on vm2'
-  hosts: "{{ kafka1_zookeeper_consumer }}"
-  remote_user: ubuntu
-  vars_files:
-  - variables/path_names.yml
-  - variables/group_names.yml
-  vars:
-    provisioner_ip: "{{ groups['MyLocalVMs'].0 | default('127.0.0.1') }}"
+#####################################################################
+# - name: 'Play 11: Run Consumer on vm2'
+#   hosts: "{{ kafka1_zookeeper_consumer }}"
+#   remote_user: ubuntu
+#   vars_files:
+#   - variables/path_names.yml
+#   - variables/group_names.yml
+#   vars:
+#     provisioner_ip: "{{ groups['MyLocalVMs'].0 | default('127.0.0.1') }}"
 
-  tasks:
-  - ansible.builtin.include_tasks: tasks/execute/playbook_start_consumer.yml
-    vars:
-      zookeeper_ip: "{{ hostvars[provisioner_ip]['vm2_ip'] }}"
-      couchDB_ip: "{{ hostvars[provisioner_ip]['vm3_ip'] }}"
+#   tasks:
+#   - ansible.builtin.include_tasks: tasks/execute/playbook_start_consumer.yml
+#     vars:
+#       zookeeper_ip: "{{ hostvars[provisioner_ip]['vm2_ip'] }}"
+#       couchDB_ip: "{{ hostvars[provisioner_ip]['vm3_ip'] }}"
 
 
-##########################################################
-### Play 11: Provision Producers and run script
+#####################################################################
+### Play 12: Provision Producers and run script
 #
 # Provision VM1.1 and VM1.2 and execute producer.py on each
-##########################################################
-- name: 'Play 11: Provision Producers and run script'
-  ansible.builtin.import_playbook: playbook_master_run_producers.yml
+#####################################################################
+# - name: 'Play 12: Provision Producers and run script'
+#   ansible.builtin.import_playbook: playbook_master_run_producers.yml
 ...
