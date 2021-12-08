@@ -136,11 +136,12 @@
 #       replace: admin%20password
 
 #####################################################################
-### Play 6: Install Dependencies on the K8S Master Cloud Instance
+### Play 6: Install and Launch K8S Master
 #
-# Install and configure CouchDB and Kafka on the CouchDB/Kafka host
+# Install K8S, Docker, and Dependencies,
+#   and Configure, Start, and Taint K8S Master Instance
 #####################################################################
-- name: 'Play 6: Install Dependencies on the K8S Master Cloud Instance'
+- name: 'Play 6: Install and Launch K8S Master'
   hosts: "{{ k8s_master }}"
   remote_user: ubuntu
   vars_files:
@@ -156,23 +157,55 @@
   - name: Install Docker and K8S
     ansible.builtin.include_tasks: tasks/vms/k8s/playbook_configure_k8s_master.yml
 
+  - name: Start and Prepare K8S Master
+    ansible.builtin.include_tasks: tasks/vms/k8s/playbook_start_and_prepare_k8s_master.yml
+
+#####################################################################
+### Play 7: Reboot Remotes
+#
+# Reboot the AWS instances
+#####################################################################
+# - name: "Play 7: Reboot Remotes"
+#   hosts: MyLocalVMs
+#   remote_user: ubuntu
+#   strategy: debug
+#   collections:
+#   - amazon.aws
+#   tasks:
+#   - name: Reboot EC2 Instances
+#     amazon.aws.ec2_instance:
+#       state: restarted
+#       instance_ids:
+#       - "{{ master_instance.instance_id }}"
+#       - "{{ regular_instance.instance_id }}"
+
+# TODO: TODO: TODO: TODO: ^^^^^^^ MAY BE UNNECESSARY
+# BUUUUT MORE IMPORTANTLY:
+# next will need to run kubectl get nodes -o json | jq '.items[].spec.taints' on master
+# then run: kubectl taint nodes kubemaster <<<KEV>>>:<<<EFFECT>>> (based on key and effect values from previous command)
+#
+# TODO: TODO: TODO: TODO: THE kubectl COMMAND IS NOT WORKING! LOOK AT aws_vars.yml (OR NOT, MINIMAL HELP, BUT SOME CLEANUP PROB NEEDED!)
+#                 BUT ALSO LOOK AT THE DIFFERENCES OF REQ'D PORTS FOR K8S IN THE SLACK POST (FIRST ONE ON OCT 27)
+#                 AND TRY TO FIGURE IT OUT!!!!!!!!!!
+
 #####################################################################
 ### Play 7: Configure K8S Slave Hostname Aliases
 #
 # Set Hostname Aliases on slave nodes for master's use
 #####################################################################
-- name: 'Play 7: Configure K8S Slave Hostname Aliases'
-  hosts: "{{ k8s_slave }}"
-  remote_user: ubuntu
-  vars_files:
-  - variables/group_names.yml
-  strategy: debug
-  tasks:
-  - name: Add line to hosts file
-    become: yes
-    ansible.builtin.lineinfile:
-      path: /etc/hosts
-      line: "{{ inventory_hostname }} kubeworker2"
+# TODO: uncomment this play
+# - name: 'Play 7: Configure K8S Slave Hostname Aliases'
+#   hosts: "{{ k8s_slave }}"
+#   remote_user: ubuntu
+#   vars_files:
+#   - variables/group_names.yml
+#   strategy: debug
+#   tasks:
+#   - name: Add line to hosts file
+#     become: yes
+#     ansible.builtin.lineinfile:
+#       path: /etc/hosts
+#       line: "{{ inventory_hostname }} kubeworker2"
 
 
 #####################################################################

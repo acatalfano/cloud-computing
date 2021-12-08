@@ -4,7 +4,7 @@
 # Author: Adam Catalfano, AJ
 # Created: Fall 2021
 #
-# copy over kubernetes files and install kubernetes + dependencies
+# copy over kubernetes files and install kubernetes + docker
 #
 
 - name: Include Path-Name Vars
@@ -37,8 +37,6 @@
   ansible.builtin.apt:
     name:
     - docker.io
-    # - apt-transport-https
-    # - curl
     - kubeadm
     - kubelet
     - kubectl
@@ -63,8 +61,4 @@
     systemctl daemon-reload
     systemctl restart docker
     systemctl enable docker
-
-- name: Turn off swap
-  become: yes
-  ansible.builtin.shell: swapoff -a
 ...
