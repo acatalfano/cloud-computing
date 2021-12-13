@@ -1,0 +1,28 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano, AJ
+# Created: Fall 2021
+#
+# Build docker image, tag and push to private registry
+#
+# REQUIRES: containers_directory
+#
+
+- name: Build matinv-server image
+  # become: yes
+  community.docker.docker_image:
+    name: 'matinv-server'
+    # repository: "{{ inventory_hostname }}:5000/matinv-server"
+    build:
+      path: "{{ containers_directory }}/Service_Job"
+      dockerfile: ./dockerfile_server
+    source: build
+    # push: yes
+- name: Push matinv-server image to private registry
+  community.docker.docker_image:
+    name: 'matinv-server'
+    repository: "{{ inventory_hostname }}:5000/matinv-server"
+    source: local
+    push: yes
+...

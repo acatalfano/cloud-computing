@@ -23,15 +23,20 @@
     - "{{ ftp_SG.name }}"
     - "{{ http_SG.name }}"
     - "{{ k8s_control_SG.name }}"
+    - "{{ flannel_SG.name }}"
+    - "{{ docker_private_registry_SG.name }}"
     - "{{ zookeeper_SG.name }}"
     - "{{ kafka_SG.name }}"
     - "{{ couch_db_SG.name }}"
+    # TODO:vvv (do I need this????)
+    - "{{ k8s_api_egress_SG.name }}"
+    - "{{ test_all_SG.name }}"
   ansible.builtin.include_tasks: ./playbook_provision_aws_template.yml
 
 - name: Provision vm3 (non-master) instance
   vars:
     name: worker_vm3
-    instance_flavor: "{{ regular_instance_type }}"
+    instance_flavor: "{{ worker_instance_type }}"
     instance_fact_name: regular_instance
     sec_group_list:
     - "{{ ssh_SG.name }}"
@@ -39,17 +44,13 @@
     - "{{ http_SG.name }}"
     - "{{ couch_db_SG.name }}"
     - "{{ k8s_worker_SG.name }}"
+    - "{{ flannel_SG.name }}"
+    - "{{ docker_private_registry_SG.name }}"
     - "{{ zookeeper_SG.name }}"
     - "{{ kafka_SG.name }}"
+    - "{{ k8s_api_egress_SG.name }}"
+    - "{{ test_all_SG.name }}"
   ansible.builtin.include_tasks: ./playbook_provision_aws_template.yml
-
-- name: debug master_instance
-  debug:
-    var: master_instance
-
-- name: debug regular_instance
-  debug:
-    var: regular_instance
 
 - name: Add new instances to all_remote group
   ansible.builtin.add_host:
@@ -69,6 +70,8 @@
   ansible.builtin.set_fact:
     "{{ zookeeper_ip }}": "{{ master_instance.public_ip_address }}"
     "{{ couchdb_ip }}": "{{ regular_instance.public_ip_address }}"
+    "{{ zookeeper_private_ip }}": "{{ master_instance.private_ip_address }}"
+    "{{ couchdb_private_ip }}": "{{ regular_instance.private_ip_address }}"
 
 - name: Pause for deployment
   ansible.builtin.pause:

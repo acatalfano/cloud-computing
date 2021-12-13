@@ -1,0 +1,29 @@
+version: '3'
+
+services:
+  registry:
+    image: registry:2
+    ports:
+    - "5000:5000"
+    environment:
+      REGISTRY_AUTH: htpasswd
+      REGISTRY_AUTH_HTPASSWD_REALM: Registry Realm
+      REGISTRY_AUTH_HTPASSWD_PATH: /auth/registry.password
+    volumes:
+    - ./auth:/auth
+
+
+
+
+
+# TODO: need to do:
+#
+# sudo apt install apache2-utils
+# mkdir ~/auth
+# htpasswd -Bc registry.password testuser
+
+# then:
+# docker-compose up
+
+# then:
+# docker login "{{ inventory_hostname }}:5000"

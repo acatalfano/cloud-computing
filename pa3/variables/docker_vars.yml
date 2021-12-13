@@ -1,0 +1,4 @@
+---
+# variables used in docker tasks
+- reg_secret_name: myregistry-secret
+...

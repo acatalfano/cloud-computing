@@ -26,14 +26,6 @@
     group: ubuntu
 
 - name: Add Flannel Network Virtualization
-  ansible.builtin.shell: kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
-  # TODO: this one probably won't be necessary vvvvvvv
-  #        kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/k8s-manifests/kube-flannel-rbac.yml
-
-# - name:
-
-
-
-# TODO: might wanna use this command and grab its output to make the next command easy-peasy!
-#       kubeadm token create --print-join-command
+  ansible.builtin.shell: |
+    kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
 ...

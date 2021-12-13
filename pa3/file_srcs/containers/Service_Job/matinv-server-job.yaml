@@ -20,5 +20,7 @@ spec:                     # This is the specification where we can even put the 
                                              # from all our workers
           imagePullPolicy: Always  # This forces the node to pull the image
           command: ["python3"]
-          args: ["/matinv_server.py"]  # arguments to run. 
+          args: ["/matinv_server.py"]  # arguments to run.
+      imagePullSecrets:
+        - name: myregistry-secret
       restartPolicy: Never  # we ask Kubernetes not to restart

@@ -1,7 +1,7 @@
 ---
 key_name: Default_KeyPair
 master_instance_type: t2.medium
-regular_instance_type: t2.micro
+worker_instance_type: t2.small
 couch_db_SG:
   name: CouchDB_Traffic
   description: Traffic for CouchDB
@@ -53,8 +53,9 @@ k8s_control_SG:
     port_range: 2379-2380
     proto: tcp
     description: etcd server client api
+  # TODO: MAYBE need to do 10251 + 10252 for scheduler and controller instead of 10259 + 10257
   - ip: 0.0.0.0/0
-    port_range: '10250'
+    port_range: '10250-10252' # '10250'
     proto: tcp
     description: kubelet api
   - ip: 0.0.0.0/0
@@ -70,13 +71,47 @@ k8s_worker_SG:
   description: Traffic for Kubernetes Worker
   in_rules:
   - ip: 0.0.0.0/0
-    port_range: '10250'
+    port_range: '10250-10252' # '10250'
     proto: tcp
     description: kubelet api
   - ip: 0.0.0.0/0
     port_range: 30000-32767
     proto: tcp
     description: nodePort services
+k8s_api_egress_SG:
+  name: etcd api Initiator
+  description: Initiate contact with etcd server client api
+  # in_rules:
+  # - ip: 0.0.0.0/0
+  #   port_range: All
+  #   proto: tcp
+  #   description: all tcp ingress
+  # - ip: 0.0.0.0/0
+  #   port_range: All
+  #   proto: udp
+  #   description: all udp ingress
+  out_rules:
+  - ip: 0.0.0.0/0
+    port_range: '6443'
+    proto: tcp
+    description: allow etcd api server client api egress
+  # - ip: 0.0.0.0/0
+  #   port_range: All
+  #   proto: udp
+  #   description: all udp egress
+docker_private_registry_SG:
+  name: Docker Private Registry
+  description: Allow traffic for using a custom docker private registry
+  in_rules:
+  - ip: 0.0.0.0/0
+    port_range: '5000'
+    proto: tcp
+    description: all ingress traffic on private registry port
+  out_rules:
+  - ip: 0.0.0.0/0
+    port_range: '5000'
+    proto: tcp
+    description: all egress traffic on private registry port
 ssh_SG:
   name: ssh
   description: allow SSH traffic
@@ -94,8 +129,8 @@ ftp_SG:
     proto: tcp
     description: FTP ingress
 http_SG:
-  name: HTTP
-  description: allow HTTP traffic
+  name: HTTP and HTTPS
+  description: allow HTTP and HTTPS traffic out
   out_rules:
   - ip: 0.0.0.0/0
     port_range: '80'
@@ -105,6 +140,39 @@ http_SG:
     port_range: '443'
     proto: tcp
     description: HTTPS egress
+flannel_SG:
+  name: Flannel Traffic
+  description: Allow Flannel Traffic for K8S Networking
+  in_rules:
+  - ip: 0.0.0.0/0
+    port_range: '8285'
+    proto: udp
+    description: Allow Flannel VXAN Traffic
+  - ip: 0.0.0.0/0
+    port_range: '8472'
+    proto: udp
+    description: Allow Flannel Traffic
+test_all_SG:
+  name: all ok
+  description: allow all traffic
+  in_rules:
+  - ip: 0.0.0.0/0
+    port_range: All
+    proto: udp
+    description: all udp ingress
+  - ip: 0.0.0.0/0
+    port_range: All
+    proto: tcp
+    description: all tcp ingress
+  out_rules:
+  - ip: 0.0.0.0/0
+    port_range: All
+    proto: udp
+    description: all udp egress
+  - ip: 0.0.0.0/0
+    port_range: All
+    proto: tcp
+    description: all tcp egress
 
 security_groups:
 - "{{ ssh_SG }}"
@@ -113,8 +181,12 @@ security_groups:
 - "{{ couch_db_SG }}"
 - "{{ k8s_control_SG }}"
 - "{{ k8s_worker_SG }}"
+- "{{ k8s_api_egress_SG }}"
+- "{{ flannel_SG }}"
+- "{{ docker_private_registry_SG }}"
 - "{{ zookeeper_SG }}"
 - "{{ kafka_SG }}"
+- "{{ test_all_SG }}"
 
 image: ami-09e67e426f25ce0d7
 region: us-east-1

@@ -4,22 +4,16 @@
 # Author: Adam Catalfano, AJ
 # Created: Fall 2021
 #
-# copy over kubernetes files and install kubernetes + docker
+# install kubernetes + docker
 #
 
-- name: Include Path-Name Vars
-  ansible.builtin.include_vars: ../../../variables/path_names.yml
-
-- name: Copy containers directory to remote
-  # become: yes
-  ansible.builtin.copy:
-    src: ../../../file_srcs/containers/
-    # dest: ~/containers
-    dest: "{{ containers_directory }}"
-    # owner: ubuntu
-    # group: ubuntu
-    # mode: 0110
-    # directory_mode: 0660
+- name: Create daemon.json and write insecure registries config
+  become: yes
+  ansible.builtin.lineinfile:
+    create: yes
+    line: "{{ { 'insecure-registries': [inventory_hostname + ':5000'] } | to_json }}"
+    #line: "{\n\t\"insecure-registries\": [\"{{ inventory_hostname }}:5000\"]\n}"
+    path: /etc/docker/daemon.json
 
 - name: Add Kubernetes GPG Key
   become: yes
@@ -31,7 +25,6 @@
   ansible.builtin.apt_repository:
     repo: deb http://apt.kubernetes.io/ kubernetes-xenial main
 
-
 - name: Install Docker and Kubernetes
   become: yes
   ansible.builtin.apt:
@@ -41,7 +34,6 @@
     - kubelet
     - kubectl
     - kubernetes-cni
-
 
 - name: Configure docker to use systemd-based Cgroup driver
   become: yes
@@ -53,12 +45,33 @@
 
 - name: Add user to docker group
   become: yes
-  ansible.builtin.shell: usermod -aG docker $USER
+  ansible.builtin.user:
+    append: yes
+    user: ubuntu
+    groups:
+    - docker
 
-- name: restart docker
+- name: Change permissions for docker.sock file
+  become: yes
+  ansible.builtin.file:
+    path: /var/run/docker.sock
+    mode: 0666
+
+- name: Reload Daemon
   become: yes
   ansible.builtin.shell: |
     systemctl daemon-reload
     systemctl restart docker
-    systemctl enable docker
+
+# - name: Restart docker
+#   become: yes
+#   ansible.builtin.service:
+#     name: docker
+#     state: restarted
+# - name: restart docker
+#   become: yes
+#   ansible.builtin.shell: |
+#     systemctl daemon-reload
+#     systemctl restart docker
+#     systemctl enable docker
 ...
