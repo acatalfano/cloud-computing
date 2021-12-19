@@ -1,7 +1,7 @@
 ---
 #
 # EECS 5287: Principles of Cloud Computing
-# Author: Adam Catalfano, AJ
+# Author: Adam Catalfano
 # Created: Fall 2021
 #
 # Configures the CLI command 'python' to point to python3,

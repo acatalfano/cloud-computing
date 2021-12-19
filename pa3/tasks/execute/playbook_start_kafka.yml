@@ -1,7 +1,7 @@
 ---
 #
 # EECS 5287: Principles of Cloud Computing
-# Author: Adam Catalfano, AJ
+# Author: Adam Catalfano
 # Created: Fall 2021
 #
 # Start the Kafka server as a daemon

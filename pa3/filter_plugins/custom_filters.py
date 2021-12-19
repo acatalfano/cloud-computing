@@ -1,13 +1,8 @@
 class FilterModule(object):
     def filters(self):
         return {
-            'asSecGroupRules': self.filter_as_sec_group_rules,
-            'firstNeq': self.filter_first_neq
+            'asSecGroupRules': self.filter_as_sec_group_rules
         }
-
-    def filter_first_neq(self, str_list, bad_val):
-        filtered = [val for val in str_list if val != bad_val]
-        return filtered[0] if len(filtered) > 0 else ''
 
     def filter_as_sec_group_rules(self, rules_data):
         return [

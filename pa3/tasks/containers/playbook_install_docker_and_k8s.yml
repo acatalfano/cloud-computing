@@ -1,19 +1,11 @@
 ---
 #
 # EECS 5287: Principles of Cloud Computing
-# Author: Adam Catalfano, AJ
+# Author: Adam Catalfano
 # Created: Fall 2021
 #
 # install kubernetes + docker
 #
-
-- name: Create daemon.json and write insecure registries config
-  become: yes
-  ansible.builtin.lineinfile:
-    create: yes
-    line: "{{ { 'insecure-registries': [inventory_hostname + ':5000'] } | to_json }}"
-    #line: "{\n\t\"insecure-registries\": [\"{{ inventory_hostname }}:5000\"]\n}"
-    path: /etc/docker/daemon.json
 
 - name: Add Kubernetes GPG Key
   become: yes
@@ -63,15 +55,19 @@
     systemctl daemon-reload
     systemctl restart docker
 
-# - name: Restart docker
-#   become: yes
-#   ansible.builtin.service:
-#     name: docker
-#     state: restarted
-# - name: restart docker
-#   become: yes
-#   ansible.builtin.shell: |
-#     systemctl daemon-reload
-#     systemctl restart docker
-#     systemctl enable docker
+- name: Add kubectl tab-completion line to .bashrc
+  ansible.builtin.lineinfile:
+    path: ~/.bashrc
+    line: source <(kubectl completion bash)
+
+- name: Store output of kubectl completion bash
+  ansible.builtin.shell: kubectl completion bash
+  register: completion_bash_script
+
+- name: Write kubectl completion completion bash to /etc/bash_completion.d/kubectl
+  become: yes
+  ansible.builtin.lineinfile:
+    path: /etc/bash_completion.d/kubectl
+    line: "{{ completion_bash_script.stdout }}"
+    create: yes
 ...
