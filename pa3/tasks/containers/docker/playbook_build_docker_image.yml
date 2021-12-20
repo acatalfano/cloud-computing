@@ -4,7 +4,7 @@
 # Author: Adam Catalfano
 # Created: Fall 2021
 #
-# Build docker image, tag and push to private registry
+# Build docker image, pushing to private registry
 #
 # REQUIRES: containers_directory, registry_ip
 #

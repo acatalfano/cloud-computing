@@ -1,7 +1,8 @@
 class FilterModule(object):
     def filters(self):
         return {
-            'asSecGroupRules': self.filter_as_sec_group_rules
+            'asSecGroupRules': self.filter_as_sec_group_rules,
+            'flagOptions': self.flag_options
         }
 
     def filter_as_sec_group_rules(self, rules_data):
@@ -32,3 +33,16 @@ class FilterModule(object):
         else:
             port = int(port_range[port_range.find('-') + 1:])
         return port
+
+    def flag_options(self, options: list[str], option_flag: str) -> list[str]:
+        '''
+            Used for a CLI options list where a single option-flag
+            is used multiple times on different arguments
+        '''
+        return [
+            item for pair in [
+                [option_flag, val]
+                for val in options
+            ]
+            for item in pair
+        ]

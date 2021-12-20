@@ -1,0 +1,47 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano
+# Created: Fall 2021
+#
+# Run Kafka Job on a Pod
+#
+# REQUIRES:
+#   host_url - location of the api
+#   name - name of the service
+#   app_name - app that the ports are a part of
+#   port_id - an offset used to calculate the physically exposed port number
+#   pod_hostname - hostname for the pod
+#   node_hostname - hostname for the actual node
+#   container_name - name given to the target container
+#   registry_ip - IP address of image registry
+#   registry_port - port on which the image registry serves up container images
+#   kafka_directory - directory where kafka is installed
+
+- name: Run Kafka Job on a Pod
+  vars:
+    kafka_server_props_file:
+    - "{{ kafka_directory }}/config/server.properties"
+    config_opts:
+    - listeners=PLAINTEXT://:9092
+    # - TODO: cont'd!!!!
+    config_opts_with_flag: "{{ config_opts | flatOptions('--override') }}"
+  kubernetes.core.k8s:
+    apiVersion: batch/v1
+    kind: Job
+    host: "{{ host_url }}"
+    name: "{{ name }}"
+    resource_definition:
+      spec:
+        hostname: "{{ pod_hostname }}"
+        nodeSelector:
+          kubernetes.io/hostname: "{{ node_hostname }}"
+        containers:
+        - name: "{{ container_name }}"
+          image: "{{ registry_ip }}:{{ registry_port }}/{{ container_name }}"
+          imagePullPolicy: Always
+          command: ["{{ kafka_directory }}/bin/kafka-server-start.sh"]
+          args: "{{ kafka_server_props_file + config_opts_with_flag }}"
+      restartPolicy: Never
+
+...
