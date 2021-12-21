@@ -17,6 +17,8 @@
 #   registry_ip - IP address of image registry
 #   registry_port - port on which the image registry serves up container images
 #   kafka_directory - directory where kafka is installed
+#   advertised_ip - the public IP a client uses to send to this Kafka broker
+#   zookeeper_ip - the public IP of the zookeeper server
 
 - name: Run Kafka Job on a Pod
   vars:
@@ -24,7 +26,10 @@
     - "{{ kafka_directory }}/config/server.properties"
     config_opts:
     - listeners=PLAINTEXT://:9092
-    # - TODO: cont'd!!!!
+    - "advertised.listeners=PLAINTEXT://{{ advertised_ip }}:9092"
+    - listener.security.protocol.map=PLAINTEXT
+    - listener.security.protocol.map=PLAINTEXT:PLAINTEXT,SSL:SSL,SASL_PLAINTEXT:SASL_PLAINTEXT,SASL_SSL:SASL_SSL
+    - "zookeeper.connect={{ zookeeper_ip }}:2181"
     config_opts_with_flag: "{{ config_opts | flatOptions('--override') }}"
   kubernetes.core.k8s:
     apiVersion: batch/v1
@@ -41,7 +46,11 @@
           image: "{{ registry_ip }}:{{ registry_port }}/{{ container_name }}"
           imagePullPolicy: Always
           command: ["{{ kafka_directory }}/bin/kafka-server-start.sh"]
-          args: "{{ kafka_server_props_file + config_opts_with_flag }}"
+          args: "{{
+              kafka_server_props_file +
+              config_opts_with_flag +
+              ['-Djava.net.preferIPv4Stack=True', '-Xms128M', '-Xmx256M']
+            }}"
       restartPolicy: Never
-
 ...
+# TODO: IS ZOOKEEPER EVEN USED??????

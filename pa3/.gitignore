@@ -2,3 +2,7 @@ __pycache__/
 .mypy_cache/
 ss.ps1
 credentials/
+file_srcs/containers/Deployment/
+file_srcs/containers/Job/
+file_srcs/containers/Service_Job/
+file_srcs/containers/README

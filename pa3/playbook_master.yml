@@ -143,13 +143,11 @@
 #       regexp: (?<=password = ')[^']*(?=')
 #       replace: admin%20password
 #####################################################################
-### Play 5: Install Docker + K8S, copy over K8S Files,
-#             and setup kubectl tab-completion
+### Play 5: Install Docker + K8S and setup kubectl tab-completion
 #
 # Install K8S, Docker, and Dependencies on all remotes
 #####################################################################
-- name: 'Play 5: Install Docker + K8S, copy over K8S Files,
-                    and setup kubectl tab-completion'
+- name: 'Play 5: Install Docker + K8S and setup kubectl tab-completion'
   hosts: "{{ all_remote }}"
   remote_user: ubuntu
   vars_files:
@@ -161,40 +159,7 @@
   - name: Add master as insecure registry
     vars:
       k8s_master_ip: "{{ groups[k8s_master][0] }}"
-    # TODO: drop this file vvvvv (if not used...)
     ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_add_insecure_registries_config.yml
-
-#####################################################################
-### Play 6: Reboot the remote instances
-#
-#  Reboot remotes
-#####################################################################
-# TODO: may not need this at all...
-# - name: 'Play 6: Reboot the remote instances'
-#   hosts: MyLocalVMs
-#   remote_user: ubuntu
-#   collections:
-#   - amazon.aws
-#   tasks:
-#   - name: Reboot AWS Instances
-#     amazon.aws.ec2_instance:
-#       instance_ids:
-#       - "{{ master_instance.instance_id }}"
-#       - "{{ regular_instance.instance_id }}"
-#       state: rebooted
-
-#   - name: Pause for Reboot to finish
-#     ansible.builtin.pause:
-#       seconds: 30
-
-#   - name: Wait for SSH to come up
-#     debugger: on_failed
-#     delegate_to: "{{ item.public_dns_name }}"
-#     ansible.builtin.wait_for:
-#       timeout: 60
-#       port: 22
-#       state: started
-#     loop: [ "{{ master_instance }}", "{{ regular_instance }}" ]
 
 #####################################################################
 ### Play 7: Configure and Launch K8S Master
@@ -213,16 +178,8 @@
   strategy: debug
   collections:
   - community.docker
+
   tasks:
-  # TODO: drop these 2 tasks
-  # - name: debug whats in hostvars
-  #   debug:
-  #     var: hostvars
-
-  # - name: wait to grab the output
-  #   ansible.builtin.pause:
-  #     seconds: 35
-
   - name: Set Hostname Aliases on K8S Master
     become: yes
     vars:
@@ -230,8 +187,8 @@
       - "{{ inventory_hostname }} kubemaster kubeworker1"
       - "{{ hostvars['127.0.0.1'].vm2_private_ip }} kubemaster kubeworker1"
       # TODO: these 2 lines really needed???
-      - 127.0.0.1 localhost
-      - 127.0.1.1 acat-vm3.novalocal acat-vm3
+      # - 127.0.0.1 localhost
+      # - 127.0.1.1 acat-vm3.novalocal acat-vm3
     ansible.builtin.lineinfile:
       path: /etc/hosts
       line: "{{ lines | join('\n') }}"
@@ -352,8 +309,8 @@
       - "{{ inventory_hostname }} kubeworker2"
       - "{{ hostvars['127.0.0.1'].vm3_private_ip }} kubeworker2"
       # TODO: these 2 lines really needed???
-      - 127.0.0.1 localhost
-      - 127.0.1.1 acat-vm3.novalocal acat-vm3
+      # - 127.0.0.1 localhost
+      # - 127.0.1.1 acat-vm3.novalocal acat-vm3
     ansible.builtin.lineinfile:
       path: /etc/hosts
       line: "{{ lines | join('\n') }}"
@@ -364,55 +321,12 @@
     become: yes
     ansible.builtin.shell: "{{ hostvars[k8s_master_ip].joinCommand }} --node-name kubeworker2"
 
-  # - name: Copy over registry credentials from master
-  #   delegate_to: "{{ k8s_master }}"
-  #   ansible.builtin.copy:
-  #     dest: ~/auth
-  #     src:
-
-
 #####################################################################
-### Play 9: Login to private registry on all remotes
+### Play 10: Untaint master, build docker images, and run pods
 #
-# Untaint K8S master to be a worker and build docker image
+# Untaint K8S master to be a worker and build docker images
 #####################################################################
-# TODO: cleanup
-# - name: 'Play 9: Login to private registry on all remotes'
-#   hosts: "{{ all_remote }}"
-#   remote_user: ubuntu
-#   vars_files:
-#   - variables/group_names.yml
-#   - variables/credentials/docker.yml
-#   - variables/docker_vars.yml
-#   strategy: debug
-#   tasks:
-#   - name: Install Pip for Python3
-#     become: yes
-#     ansible.builtin.apt:
-#       name:
-#       - python3-pip
-#
-#   - name: Install docker and docker-compose python package
-#     become: yes
-#     ansible.builtin.pip:
-#       name:
-#       - docker
-
-  # - name: Login to the K8S Master's private registry
-  #   vars:
-  #     k8s_master_ip: "{{ groups[k8s_master][0] }}"
-  #   ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_login_to_private_registry.yml
-  # - name: Create basic auth secret
-  #   vars:
-  #     registry_ip: "{{ groups[k8s_master][0] }}"
-  #   ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_create_secret.yml
-
-#####################################################################
-### Play 10: Untaint master, create secret, build docker image, and run pods
-#
-# Untaint K8S master to be a worker and build docker image
-#####################################################################
-- name: 'Play 10: Untaint master, create secret, build docker image, and run pods'
+- name: 'Play 10: Untaint master, build docker images, and run pods'
   hosts: "{{ k8s_master }}"
   remote_user: ubuntu
   vars_files:
@@ -427,34 +341,21 @@
   - name: Untaint K8S master
     ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_untaint_master.yml
 
-  - name: Build docker image
+  - name: Build docker images
     vars:
       registry_ip: "{{ inventory_hostname }}"
-    ansible.builtin.include_tasks: tasks/containers/docker/playbook_build_docker_image.yml
+    ansible.builtin.include_tasks: tasks/containers/docker/playbook_build_docker_images.yml
+  # - name: Build docker image
+  #   vars:
+  #     registry_ip: "{{ inventory_hostname }}"
+  #   ansible.builtin.include_tasks: tasks/containers/docker/playbook_build_docker_image.yml
 
-  - name: Deploy matinv k8s service and pod
-    vars:
-      svc_path: "{{ containers_directory }}/Service_Job/matinv-server-svc.yaml"
-      pod_path: "{{ containers_directory }}/Service_Job/matinv-server-job.yaml"
-    ansible.builtin.include_tasks: tasks/containers/k8s/deploy/playbook_deploy_k8s_svc_and_pod.yml
+  # - name: Deploy matinv k8s service and pod
+  #   vars:
+  #     svc_path: "{{ containers_directory }}/Service_Job/matinv-server-svc.yaml"
+  #     pod_path: "{{ containers_directory }}/Service_Job/matinv-server-job.yaml"
+  #   ansible.builtin.include_tasks: tasks/containers/k8s/deploy/playbook_deploy_k8s_svc_and_pod.yml
 
-#####################################################################
-### Play 7: Install Dependencies on the VM3 Cloud Instance
-#
-# Install and configure CouchDB and Kafka on the CouchDB/Kafka host
-#####################################################################
-# - name: 'Play 7: Install Dependencies on CouchDB/Kafka Cloud Instance'
-#   hosts: "{{ kafka2_couchDB }}"
-#   remote_user: ubuntu
-#   vars_files:
-#   - variables/group_names.yml
-#   # strategy: debug
-#   tasks:
-#   - ansible.builtin.include_tasks: tasks/vms/vm3/playbook_install_couchdb.yml
-
-#   - ansible.builtin.include_tasks: tasks/vms/vm3/playbook_configure_couchdb.yml
-#     vars:
-#       password: admin password
 
 
 #####################################################################

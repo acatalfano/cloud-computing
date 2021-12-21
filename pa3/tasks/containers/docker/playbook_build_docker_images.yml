@@ -9,13 +9,12 @@
 # REQUIRES: containers_directory, registry_ip
 #
 
-- name: Build matinv-server image
+- name: Build kafka image
   community.docker.docker_image:
-    name: 'matinv-server'
-    repository: "{{ registry_ip }}:5000/matinv-server"
+    name: 'kafka'
+    repository: "{{ registry_ip }}:5000/kafka"
     build:
-      path: "{{ containers_directory }}/Service_Job"
-      dockerfile: ./dockerfile_server
+      path: "{{ containers_directory }}/kafka"
     source: build
     push: yes
 ...
