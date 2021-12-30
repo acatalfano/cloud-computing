@@ -9,9 +9,9 @@
 
 - name: Wait for zookeeper to bring up port 2181 on VM3
   ansible.builtin.wait_for:
-    host: "{{ zookeeper_ip }}"
+    host: "{{ zookeeperIp }}"
     port: 2181
 
 - name: Start Kafka as a daemon process
-  ansible.builtin.shell: 'daemon -- {{ kafka_directory }}/bin/kafka-server-start.sh {{ kafka_directory }}/config/server.properties'
+  ansible.builtin.shell: 'daemon -- {{ kafkaDirectory }}/bin/kafka-server-start.sh {{ kafkaDirectory }}/config/server.properties'
 ...

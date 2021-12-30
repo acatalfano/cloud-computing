@@ -1,0 +1,29 @@
+---
+# variables used in docker and k8s tasks
+- images:
+  - name: teamx-couchdb
+    directory: couchdb
+  - name: teamx-kafka-base
+    directory: kafka
+  # TODO: why is zookeeper getting built first??? (I think....) ---- wait...no wtf is going on????
+  # - name: teamx-zookeeper
+  #   directory: zookeeper
+
+# TODO: the replacements in the deployment files ON LOCAL VM!!!!
+
+- deployments:
+  - appName: couchdb
+    subDirectory: couchdb
+    deploymentName: couchdb-deployment
+    externalServiceName: teamx-couchdb
+
+  # - appName: kafka
+  #   subDirectory: kafka
+  #   deploymentName: kafka-deployment
+  #   externalServiceName: teamx-kafka
+
+  # - appName: zookeeper
+  #   subDirectory: zookeeper
+  #   deploymentName: zookeeper-deployment
+  #   externalServiceName: teamx-zookeeper
+...

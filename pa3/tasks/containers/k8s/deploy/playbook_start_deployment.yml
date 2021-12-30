@@ -1,0 +1,69 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano
+# Created: Fall 2021
+#
+# Deploy a k8s service and then a pod
+#
+# REQUIRES:
+#   containersDirectory
+#   subDirectory - directory within containersDirectory containing deployment file
+#   appName - name of deployed app
+#   deploymentName - name of the deployment (not the app)
+#   externalServiceName - name of the exposed service
+#
+# TODO: what does it actually require???
+
+# - name: Install jq if not installed
+#   become: yes
+#   ansible.builtin.apt: name=jq
+
+# - name: Deploy the service and pod
+#   ansible.builtin.shell: "kubectl apply -f {{ containersDirectory }}/{{ subDirectory }}/{{ item }}"
+#   loop:
+#   - svc.yml
+#   - job.yml
+
+# TODO: should I use kubernetes.core.k8s instead??? b/c this has the tight-coupling b/w "appName" variable and "app" specified in "deployment.yml" file
+# THE COMMENTED OUT STUFF ONLY FAILED B/C I STILL HAVE "1.2.3.4:5000" ON THE IMAGE SETTING IN THE YAML SINCE IT'S LOCAL! NOT REMOTE!
+#     OH! RUN THIS WITH HOST == K8SMASTER!!!! NOT LOCALVM
+#     ...crap nvm that's what I'm already doing!!!
+- name: Launch Deployment
+  ansible.builtin.shell: "kubectl apply -f {{ containersDirectory }}/{{ subDirectory }}/deployment.yml"
+  # vars:
+  #   # deploymentPath: "{{ containersDirectory }}/{{ subDirectory }}/deployment.yml"
+  #   deploymentPath: "../../../../file_srcs/containers/{{ subDirectory }}/deployment.yml"
+  # kubernetes.core.k8s:
+  #   name: "{{ deploymentName }}"
+  #   namespace: default
+  #   kind: Deployment
+  #   definition: "{{ lookup('file', deploymentPath) | from_yaml }}"
+
+- name: Store Deployment Pod names in register
+  ansible.builtin.shell: "kubectl get pods -l 'app={{ appName }}' -o json | jq -r '.items[].metadata.name'"
+  register: deploymentPodNames
+
+# kubectl get pods -l 'app=couchdb' -o json | jq '.items[].metadata.name' -r
+- name: Wait for Every Container in Every Pod to be Ready
+  ansible.builtin.shell: "kubectl get pods -l 'app={{ appName }}' -o json | jq '.items[].status.containerStatuses[].ready'"
+  register: deploymentContainerStatuses
+  until: not deploymentContainerStatuses.stdout_lines | reject('match', '^true$')
+  retries: 6
+
+- name: Expose the Deployment App
+  ansible.builtin.shell: "kubectl expose deploy {{ deploymentName }} --type LoadBalancer --name {{ externalServiceName }}"
+# TODO: might not need this at all, but get nodename(s) (running the app's pod(s)) via:
+#       kubectl get pods -l 'app=couchdb' -o json | jq -r '.items[].spec.nodeName'
+
+# TODO: NOTE access couchdb web client via <NODE PUB IP>:<NODE PORT> (i.e. NOT 5984!, would be 30000-something!)
+
+# - name: Wait for the pod to be ready
+#   ansible.builtin.shell: kubectl get pods -o json | jq '.items[].status.phase'
+#   register: statuses
+#   until: not statuses.stdout_lines | reject('match', '^"(Running|Succeeded)"$')
+#   retries: 6
+  # TODO: pretty sure it shouldn't be needing "Succeeded" right?????
+  # TODO: ---> for when it's a DEPLOYMENT its status should be "Running"
+  # TODO:     ---> also add     -l app=%%APP_NAME%%     to the kubectl get pods cmd when it's a DEPLOYMENT!!!
+...

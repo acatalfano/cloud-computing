@@ -2,13 +2,8 @@ class FilterModule(object):
     def filters(self):
         return {
             'asSecGroupRules': self.filter_as_sec_group_rules,
-            'flagOptions': self.flag_options,
-            'firstNeq': self.filter_first_neq
+            'flagOptions': self.flag_options
         }
-
-    def filter_first_neq(self, str_list, bad_val):
-        filtered = [val for val in str_list if val != bad_val]
-        return filtered[0] if len(filtered) > 0 else ''
 
     def filter_as_sec_group_rules(self, rules_data):
         return [
@@ -39,7 +34,7 @@ class FilterModule(object):
             port = int(port_range[port_range.find('-') + 1:])
         return port
 
-    def flag_options(self, options: list[str], option_flag: str) -> list[str]:
+    def flag_options(self, options, option_flag):
         '''
             Used for a CLI options list where a single option-flag
             is used multiple times on different arguments

@@ -11,7 +11,7 @@
   become: yes
   ansible.builtin.lineinfile:
     create: yes
-    line: "{{ { 'insecure-registries': [k8s_master_ip + ':5000'] } | to_json }}"
+    line: "{{ { 'insecure-registries': [k8sMasterIp + ':5000'] } | to_json }}"
     path: /etc/docker/daemon.json
 
 - name: Reload Daemon

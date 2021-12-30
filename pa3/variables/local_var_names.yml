@@ -1,5 +1,5 @@
 ---
 # this is where we defined variable names
 # for what gets written to the local_vars.yml file
-running_instance_ids: running_aws_ids
+runningInstanceIds: running_aws_ids
 ...

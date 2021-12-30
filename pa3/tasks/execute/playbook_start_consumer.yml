@@ -11,19 +11,19 @@
   ansible.builtin.wait_for:
     host: "{{ item }}"
     port: 9092
-  loop: "{{ [zookeeper_ip, couchDB_ip] }}"
+  loop: "{{ [zookeeperIp, couchDBIp] }}"
 
 
 - name: Wait for CouchDB
   ansible.builtin.wait_for:
-    host: "{{ couchDB_ip }}"
+    host: "{{ couchDBIp }}"
     port: 5984
 
 
 - name: Start Consumer
   environment:
-    COUCH_DB_IP: "{{ couchDB_ip }}"
-    KAFKA_1_IP: "{{ zookeeper_ip }}"
-    KAFKA_2_IP: "{{ couchDB_ip }}"
+    COUCH_DB_IP: "{{ couchDBIp }}"
+    KAFKA_1_IP: "{{ zookeeperIp }}"
+    KAFKA_2_IP: "{{ couchDBIp }}"
   ansible.builtin.shell: daemon python3 ~/consumer.py
 ...

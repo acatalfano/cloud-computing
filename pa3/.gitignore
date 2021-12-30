@@ -1,6 +1,5 @@
 __pycache__/
 .mypy_cache/
-ss.ps1
 credentials/
 file_srcs/containers/Deployment/
 file_srcs/containers/Job/

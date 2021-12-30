@@ -15,40 +15,40 @@
 
 - name: Kafka Server Properties - Uncomment Listeners
   ansible.builtin.replace:
-    path: "{{ kafka_server_properties }}"
+    path: "{{ kafkaServerProperties }}"
     regexp: \#(?=listeners=)
 
 - name: Kafka Server Properties - Include Advertised Listeners (part 1)
   ansible.builtin.replace:
-    path: "{{ kafka_server_properties }}"
+    path: "{{ kafkaServerProperties }}"
     regexp: \#(?=advertised\.listeners=PLAINTEXT://)
 
 - name: Kafka Server Properties - Include Advertised Listeners (part 2)
   ansible.builtin.replace:
-    path: "{{ kafka_server_properties }}"
+    path: "{{ kafkaServerProperties }}"
     regexp: (?<=advertised\.listeners=PLAINTEXT://)[^:]*(?=:9092)
     replace: "{{ inventory_hostname }}"
 
 - name: Kafka Server Properties - Uncomment Listeners Security Protocol
   ansible.builtin.replace:
-    path: "{{ kafka_server_properties }}"
+    path: "{{ kafkaServerProperties }}"
     regexp: \#(?=listener\.security\.protocol\.map=)
 
 - name: Kafka Server Properties - Update Zookeeper Connect
   ansible.builtin.replace:
-    path: "{{ kafka_server_properties }}"
+    path: "{{ kafkaServerProperties }}"
     regexp: (?<=zookeeper\.connect=)(\s*localhost\s*)(?=:2181)
-    replace: "{{ groups[kafka1_zookeeper_consumer].0 }}"
+    replace: "{{ groups[kafka1ZookeeperConsumer].0 }}"
 
 - name: Kafka Server Start - Export KAFKA_HEAP_OPTS
   ansible.builtin.replace:
-    path: "{{ kafka_server_start }}"
+    path: "{{ kafkaServerStart }}"
     regexp: (?<=export KAFKA_HEAP_OPTS=\")[^\"]*
     replace: -Xms128M -Xmx256M
 
 - name: Kafka Server Start - Export KAFKA_OPTS
   ansible.builtin.lineinfile:
-    path: "{{ kafka_server_start }}"
+    path: "{{ kafkaServerStart }}"
     line: export KAFKA_OPTS="-Djava.net.preferIPv4Stack=True"
     insertbefore: ^exec\b.*
 ...

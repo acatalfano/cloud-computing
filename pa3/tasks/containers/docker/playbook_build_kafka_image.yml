@@ -15,7 +15,7 @@
     repository: "{{ registry_ip }}:{{ registry_port }}/{{ container_name }}"
     build:
 
-    #   path: "{{ containers_directory }}/Service_Job"
+    #   path: "{{ containersDirectory }}/Service_Job"
     #   dockerfile: ./dockerfile_server
     source: build
     push: yes

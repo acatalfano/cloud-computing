@@ -17,12 +17,12 @@
 - name: Make directory for Kafka installation
   ansible.builtin.file:
     state: directory
-    path: "{{ kafka_directory }}"
+    path: "{{ kafkaDirectory }}"
 
 - name: Extract archive into target Kafka install directory
   ansible.builtin.unarchive:
     src: https://dlcdn.apache.org/kafka/2.8.1/kafka_2.13-2.8.1.tgz
-    dest: "{{ kafka_directory }}"
+    dest: "{{ kafkaDirectory }}"
     remote_src: yes
     extra_opts:
     - --strip-components

@@ -1,10 +1,12 @@
 ---
-kafka_directory: ~/_kafka
-kafka_server_start: ~/_kafka/bin/kafka-server-start.sh
-kafka_server_properties: ~/_kafka/config/server.properties
-zookeeper_server_start: ~/_kafka/bin/zookeeper-server-start.sh
-zookeeper_properties: ~/_kafka/config/zookeeper.properties
-local_vm_variables: ~/local_vars
-producer_script: ~/producer.py
-containers_directory: ~/containers
+containersDirectoryName: containers
+kafkaDirectory: ~/_kafka
+kafkaServerStart: ~/_kafka/bin/kafka-server-start.sh
+kafkaServerProperties: ~/_kafka/config/server.properties
+zookeeperServerStart: ~/_kafka/bin/zookeeper-server-start.sh
+zookeeperProperties: ~/_kafka/config/zookeeper.properties
+localVmVariables: ~/local_vars
+producerScript: ~/producer.py
+containersDirectory: "~/{{ containersDirectoryName }}"
+localContainersDirectory: "/vagrant/file_srcs/{{ containersDirectoryName }}"
 ...

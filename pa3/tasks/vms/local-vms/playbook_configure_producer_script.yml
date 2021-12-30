@@ -12,7 +12,7 @@
 
 - name: Apply format-string-based Configurations
   ansible.builtin.replace:
-    path: "{{ producer_script }}"
+    path: "{{ producerScript }}"
     regexp: "(?<={{ item.key }} = )'[^']*'"
     replace: "f'{{ item.value }}'"
   loop: "{{ config | combine({ 'bootstrap_server': kafkaIp | default(omit) }) | dict2items }}"
@@ -20,14 +20,14 @@
 
 - name: Apply literal-based Configurations
   ansible.builtin.replace:
-    path: "{{ producer_script }}"
+    path: "{{ producerScript }}"
     regexp: "(?<={{ item.key }} = ).*"
     replace: "{{ item.value }}"
   loop: "{{ config.literals | dict2items }}"
 
 - name: Configure loop loop_logic
   ansible.builtin.replace:
-    path: "{{ producer_script }}"
+    path: "{{ producerScript }}"
     regexp: "# insert loop logic here"
     replace: "{{ config.loop_logic | default([]) | join('\n        ')}}"
 ...

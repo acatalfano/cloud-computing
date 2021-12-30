@@ -8,11 +8,11 @@
 #
 
 - name: Read in variables from stored EC2-id file
-  ansible.builtin.include_vars: "{{ local_vm_variables }}"
+  ansible.builtin.include_vars: "{{ localVmVariables }}"
 
 - name: Clean up provisioned Cloud Instances
   vars:
-    ids: "{{ lookup('vars', running_instance_ids) }}"
+    ids: "{{ lookup('vars', runningInstanceIds) }}"
   amazon.aws.ec2:
     region: "{{ region }}"
     state: absent
@@ -20,6 +20,6 @@
 
 - name: delete local VM variables file to signify success
   ansible.builtin.file:
-    path: "{{ local_vm_variables }}"
+    path: "{{ localVmVariables }}"
     state: absent
 ...

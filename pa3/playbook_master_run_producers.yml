@@ -41,7 +41,7 @@
     ansible.builtin.copy:
       mode: 0700
       src: ./file_srcs/producer.py
-      dest: "{{ producer_script }}"
+      dest: "{{ producerScript }}"
 
 #####################################################################
 ### Play 2: Write Producer1 script
@@ -56,14 +56,14 @@
   - ./variables/producer_src_config.yml
   - ./variables/path_names.yml
   vars:
-    provisioner_ip: "{{ groups['MyLocalVMs'].0 }}"
+    provisionerIp: "{{ groups['MyLocalVMs'].0 }}"
 
   tasks:
   - name: Configure Producer1 Script
     vars:
       config: "{{ news }}"
-      kafkaIp: "{{ hostvars[provisioner_ip]['vm2_ip'] }}"
-    ansible.builtin.include_tasks: ./tasks/vms/local-vms/playbook_configure_producer_script.yml
+      kafkaIp: "{{ hostvars[provisionerIp]['vm2Ip'] }}"
+    ansible.builtin.include_tasks: ./tasks/vms/local-vms/playbook_configure_producerScript.yml
 
 
 #####################################################################
@@ -79,14 +79,14 @@
   - ./variables/producer_src_config.yml
   - ./variables/path_names.yml
   vars:
-    provisioner_ip: "{{ groups['MyLocalVMs'].0 }}"
+    provisionerIp: "{{ groups['MyLocalVMs'].0 }}"
 
   tasks:
   - name: Configure Producer2 Script
     vars:
       config: "{{ weather }}"
-      kafkaIp: "{{ hostvars[provisioner_ip]['vm3_ip'] }}"
-    ansible.builtin.include_tasks: ./tasks/vms/local-vms/playbook_configure_producer_script.yml
+      kafkaIp: "{{ hostvars[provisionerIp]['vm3Ip'] }}"
+    ansible.builtin.include_tasks: ./tasks/vms/local-vms/playbook_configure_producerScript.yml
 
 
 #####################################################################
@@ -109,8 +109,8 @@
       update_cache: yes
 
   - name: Run dos2unix on producer script
-    ansible.builtin.shell: "dos2unix {{ producer_script }}"
+    ansible.builtin.shell: "dos2unix {{ producerScript }}"
 
   - name: Run Producer script on producer VMs
-    ansible.builtin.shell: "python3 {{ producer_script }}"
+    ansible.builtin.shell: "python3 {{ producerScript }}"
 ...

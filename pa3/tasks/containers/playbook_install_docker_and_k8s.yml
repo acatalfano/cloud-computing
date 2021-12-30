@@ -62,12 +62,12 @@
 
 - name: Store output of kubectl completion bash
   ansible.builtin.shell: kubectl completion bash
-  register: completion_bash_script
+  register: completionBashScript
 
-- name: Write kubectl completion completion bash to /etc/bash_completion.d/kubectl
+- name: Write kubectl completion bash to /etc/bash_completion.d/kubectl
   become: yes
   ansible.builtin.lineinfile:
     path: /etc/bash_completion.d/kubectl
-    line: "{{ completion_bash_script.stdout }}"
+    line: "{{ completionBashScript.stdout }}"
     create: yes
 ...
