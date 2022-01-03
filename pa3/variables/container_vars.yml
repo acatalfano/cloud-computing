@@ -1,29 +1,39 @@
 ---
 # variables used in docker and k8s tasks
-- images:
-  - name: teamx-couchdb
-    directory: couchdb
-  - name: teamx-kafka-base
-    directory: kafka
-  # TODO: why is zookeeper getting built first??? (I think....) ---- wait...no wtf is going on????
-  # - name: teamx-zookeeper
-  #   directory: zookeeper
+images:
+- name: teamx-couchdb
+  directory: couchdb
+- name: teamx-kafka-base
+  directory: kafka
+- name: teamx-zookeeper
+  directory: zookeeper
+
+deploymentServiceNames:
+  couchdb: teamx-couchdb
+  zookeeper: teamx-zookeeper
+  kafka: teamx-kafka
+
 
 # TODO: the replacements in the deployment files ON LOCAL VM!!!!
 
-- deployments:
-  - appName: couchdb
+deployments:
+  couchdb:
+    appName: couchdb
     subDirectory: couchdb
     deploymentName: couchdb-deployment
-    externalServiceName: teamx-couchdb
+    externalServiceName: "{{ deploymentServiceNames.couchdb }}"
 
-  # - appName: kafka
-  #   subDirectory: kafka
-  #   deploymentName: kafka-deployment
-  #   externalServiceName: teamx-kafka
+  zookeeper:
+    appName: zookeeper
+    subDirectory: zookeeper
+    deploymentName: zookeeper-deployment
+    externalServiceName: "{{ deploymentServiceNames.zookeeper }}"
 
-  # - appName: zookeeper
-  #   subDirectory: zookeeper
-  #   deploymentName: zookeeper-deployment
-  #   externalServiceName: teamx-zookeeper
+  kafka:
+    appName: kafka
+    subDirectory: kafka
+    deploymentName: kafka-deployment
+    externalServiceName: "{{ deploymentServiceNames.kafka }}"
+    #   repeat: 5
+    # TODO: drop the "repeat" variable if not necessary
 ...

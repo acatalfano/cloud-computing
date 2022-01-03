@@ -1,0 +1,105 @@
+---
+# EECS 4287/5287: Principles of Cloud Computing
+# Author: Adam Catalfano
+# Created: Fall 2021
+#
+# DELETE THIS PLAYBOOK EVENTUALLY.....
+
+#####################################################################
+### Play 1: Testing
+#####################################################################
+
+- name: Testing
+  hosts: MyLocalVMs
+  remote_user: ubuntu
+  vars:
+    num: 4
+    fileTarget: /vagrant/file_srcs/containers/zookeeper/deployment.yml
+    baseSed: "sed '$!N;0,/\\(name: {{ targetVariable }}\\n *value: \\).*/s//\\1adam was here/;P;D'"
+
+  tasks:
+  - name: Map dict to list
+    vars:
+      data:
+        a: 1
+        b: 2
+        c: 3
+        d: 4
+    debug:
+      var: data | dict2items(key_name='alpha', value_name='numeric')
+
+
+  ################################################################################################################
+  # - name: build list of dicts
+  #   ansible.builtin.set_fact:
+  #     data: "{{
+  #       data | default([])
+  #       + [
+  #           {
+  #             'foo': 'bar',
+  #             'fiz': 'baz',
+  #             'id': item
+  #           }
+  #         ]
+  #       }}"
+  #   loop: "{{ range(num) | list }}"
+
+  # - name: debug data
+  #   debug:
+  #     var: data
+  # sed '$!N;0,/\(\n *value: \).*/s//\1adam was here/;P;D' deployment.yml
+  # - name: test out replace filter
+  #   debug:
+  #     msg: "{{ '/this/is/some/path' | replace('/', '//') }}"
+
+  ################################################################################################################
+  # - name: install dos2unix
+  #   become: yes
+  #   ansible.builtin.apt:
+  #     name: dos2unix
+
+  # - name: fix dos line endings
+  #   ansible.builtin.shell: "dos2unix {{ fileTarget }}"
+
+  # - name: replace zookeeperBinFile and zookeeperPropsFile values
+  #   vars:
+  #     targetVariable: "{{ item.envVar }}"
+  #     updateValue: "{{ item.val }}"
+  #   # ansible.builtin.include_tasks: ./playbook_sed_helper.yml
+  #   ansible.builtin.shell: >-
+  #     sed -i 'N;0,/\(name: {{ targetVariable }}\n *value: \).*/s//\1{{ updateValue }}/;P;D' {{ fileTarget }}
+  #   # $! isn't necessary I guess...
+  #   # sed -i '$!N;0,/\(name: {{ targetVariable }}\n *value: \).*/s//\1{{ updateValue }}/;P;D' {{ fileTarget }}
+  #   loop:
+  #   - envVar: ZOOKEEPER_BIN_FILE
+  #     val: binValue
+  #   - envVar: ZOOKEEPER_PROPS_FILE
+  #     val: propsValue
+  # # - name: replace zookeeperBinFile value
+  # #   ansible.builtin.shell: >-
+  # #     sed '$!N;0,/\(name: ZOOKEEPER_BIN_FILE\n *value: \).*/s//\1adam was here/;P;D' {{ fileTarget }}
+
+  # #   # ansible.builtin.replace:
+  # #   #   path: "{{ fileTarget }}"
+  # #   #   # after: 'name: ZOOKEEPER_BIN_FILE'
+  # #   #   regexp: (?<=value:).*$
+  # #   #   replace: ' NEW BIN FILE VALUE'
+
+  # # - name: replace zookeeperPropsFile value
+  # #   ansible.builtin.replace:
+  # #     path: "{{ fileTarget }}"
+  # #     # after: 'name: ZOOKEEPER_PROPS_FILE'
+  # #     regexp: (?<=value:).*$
+  # #     replace: ' NEW PROPS FILE VALUE'
+
+  # - name: load file contents in register
+  #   ansible.builtin.shell: >-
+  #     cat "{{ fileTarget }}"
+  #   register: fileContents
+
+  # - name: print contents of deployment file
+  #   debug:
+  #     var: fileContents.stdout_lines
+
+  ################################################################################################################
+...

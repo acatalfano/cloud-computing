@@ -74,6 +74,8 @@ Vagrant.configure("2") do |config|
 
     # Ansible provisioner
     master.vm.provision "ansible_local" do |ansible|
+      # TODO: drop this line later vvvv
+      # ansible.playbook = "./playbook_master_testing.yml"
       ansible.playbook = "./playbook_master.yml"
       # ansible.playbook = "./playbook_master_cleanup.yml"
       ansible.install_mode = :pip

@@ -16,9 +16,10 @@
 - name: Provision master/vm2 instance
   vars:
     name: master_vm2
-    instance_flavor: "{{ master_instance_type }}"
-    instance_fact_name: master_instance
-    sec_group_list:
+    instanceFlavor: "{{ master_instance_type }}"
+    instanceFactName: master_instance
+    includeVolumes: yes
+    secGroupList:
     - "{{ sshSG.name }}"
     - "{{ ftpSG.name }}"
     - "{{ httpSG.name }}"
@@ -37,9 +38,10 @@
 - name: Provision vm3 (non-master) instance
   vars:
     name: worker_vm3
-    instance_flavor: "{{ worker_instance_type }}"
-    instance_fact_name: regular_instance
-    sec_group_list:
+    instanceFlavor: "{{ worker_instance_type }}"
+    instanceFactName: regular_instance
+    includeVolumes: No
+    secGroupList:
     - "{{ sshSG.name }}"
     - "{{ ftpSG.name }}"
     - "{{ httpSG.name }}"

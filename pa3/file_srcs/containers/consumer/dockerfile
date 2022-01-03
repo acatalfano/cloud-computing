@@ -20,8 +20,8 @@ FROM ubuntu:latest
 # ENV
 # prob separate it out w/ ':' characters
 
-# Copy over the consumer file
 COPY ./consumer.py /
-#
-# Run a command shell (for Swarm and Kubernetes, we comment this out)
-#CMD /bin/bash
+RUN apt-get update && apt-get install -y python3 net-tools gcc
+RUN apt-get install -y python3-dev python3-pip
+RUN apt-get pip install --upgrade pip
+RUN pip3 install jsbeautifier kafka-python CouchDB

@@ -90,23 +90,23 @@
   - name: provision AWS instances
     ansible.builtin.include_tasks: tasks/aws_instance_management/playbook_create_aws_vms.yml
 
-  - name: Configure image server IP address
-    vars:
-      containerSubDirectories:
-      # TODO: don't forget to uncomment these later!!!!
-      # - consumer
-      - couchdb
-      # - kafka
-      # - zookeeper
-      # jobFiles: [] #"{{ containerSubDirectories | product(['/job.yml']) | map('join') | list }}"
-      # deploymentFiles: "{{ containerSubDirectories | product(['/deployment.yml']) | map('join') | list }}"
-      files: "{{ containerSubDirectories | product(['/job.yml', '/deployment.yml']) | map('join') | list }}"
-    ansible.builtin.replace:
-      path: "{{ localContainersDirectory }}/{{ item }}"
-      regexp: '(?<=image: )(?:\d+\.)+\d+(?=:5000)'
-      replace: "{{ inventory_hostname }}"
-    # loop: "{{ jobFiles + deploymentFiles }}"
-    loop: "{{ files }}"
+  # - name: Configure image server IP address
+  #   vars:
+  #     containerSubDirectories:
+  #     # TODO: don't forget to uncomment these later!!!!
+  #     # - consumer
+  #     - couchdb
+  #     - zookeeper
+  #     # - kafka
+  #     # jobFiles: [] #"{{ containerSubDirectories | product(['/job.yml']) | map('join') | list }}"
+  #     # deploymentFiles: "{{ containerSubDirectories | product(['/deployment.yml']) | map('join') | list }}"
+  #     files: "{{ containerSubDirectories | product(['/deployment.yml']) | map('join') | list }}"
+  #   ansible.builtin.replace:
+  #     path: "{{ localContainersDirectory }}/{{ item }}"
+  #     regexp: '(?<=image: )(?:\d+\.)+\d+(?=:5000)'
+  #     replace: "{{ inventory_hostname }}"
+  #   # loop: "{{ jobFiles + deploymentFiles }}"
+  #   loop: "{{ files }}"
 
 #####################################################################
 ### Play 4: Install Common Dependencies on all Cloud Instances
@@ -195,7 +195,7 @@
   - variables/group_names.yml
   - variables/path_names.yml
   - variables/credentials/couchdb_admin.yml
-  # - variables/container_vars.yml
+  - variables/container_vars.yml
   strategy: debug
   collections:
   - community.docker
@@ -220,7 +220,7 @@
       dest: "{{ containersDirectory }}"
 
   # TODO TODO TODO TODO
-  # TODO UNCOMMENT IN THIS DOESNT WORK!!!!
+  # TODO UNCOMMENT IF THIS DOESNT WORK!!!!
   # TODO TODO TODO TODO
   - name: Configure image server IP address
     vars:
@@ -228,17 +228,38 @@
       # TODO: don't forget to uncomment these later!!!!
       # - consumer
       - couchdb
-      # - kafka
-      # - zookeeper
+      - zookeeper
+      - kafka
       # jobFiles: [] #"{{ containerSubDirectories | product(['/job.yml']) | map('join') | list }}"
       # deploymentFiles: "{{ containerSubDirectories | product(['/deployment.yml']) | map('join') | list }}"
-      files: "{{ containerSubDirectories | product(['/job.yml', '/deployment.yml']) | map('join') | list }}"
+      # '/job.yml',
+      files: "{{ containerSubDirectories | product(['/deployment.yml']) | map('join') | list }}"
     ansible.builtin.replace:
       path: "{{ containersDirectory }}/{{ item }}"
       regexp: '(?<=image: )(?:\d+\.)+\d+(?=:5000)'
       replace: "{{ inventory_hostname }}"
     # loop: "{{ jobFiles + deploymentFiles }}"
     loop: "{{ files }}"
+
+
+  - name: install dos2unix
+    become: yes
+    ansible.builtin.apt:
+      name: dos2unix
+
+  - name: fix dos line endings
+    ansible.builtin.shell: "dos2unix {{ item }}/deployment.yml"
+    loop:
+    - "{{ zookeeperDeploymentDirectory }}"
+    - "{{ kafkaDeploymentDirectory }}"
+
+  - name: Configure Zookeeper Deployment Environment Variables
+    vars:
+      targetDirectory: "{{ zookeeperDeploymentDirectory }}"
+      envMap:
+        ZOOKEEPER_BIN_FILE: "{{ zookeeperServerStart }}"
+        ZOOKEEPER_PROPS_FILE: "{{ zookeeperProperties }}"
+    ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_configure_deployment_environment_variables.yml
 
   - name: Set CouchDB AdmUser in deployment.yml
     ansible.builtin.replace:
@@ -368,11 +389,11 @@
     ansible.builtin.shell: "{{ hostvars[k8sMasterIp].joinCommand }} --node-name kubeworker2"
 
 #####################################################################
-### Play 9: Untaint master, build docker images, and deploy apps
+### Play 8: Untaint master, build docker images, and deploy apps
 #
 # Untaint K8S master to be a worker, build docker images,
 #####################################################################
-- name: 'Play 9: Untaint master, build docker images, and deploy apps'
+- name: 'Play 8: Untaint master, build docker images, and deploy apps'
   hosts: "{{ k8sMaster }}"
   remote_user: ubuntu
   vars_files:
@@ -391,15 +412,106 @@
       registry_ip: "{{ inventory_hostname }}"
     ansible.builtin.include_tasks: tasks/containers/docker/playbook_build_docker_images.yml
 
-  - name: Deploy k8s Apps
+  # TODO: may wanna change it to be "deploy couchdb" since they're going to be different enough...
+  #           actually no, prob wanna revert to be doing it loopwise again
+  - name: Deploy Couchdb and Zookeeper k8s Apps
     vars:
       appName: "{{ item.appName }}"
       subDirectory: "{{ item.subDirectory }}"
       deploymentName: "{{ item.deploymentName }}"
       externalServiceName: "{{ item.externalServiceName }}"
-    ansible.builtin.include_tasks: tasks/containers/k8s/deploy/playbook_start_deployment.yml
-    loop: "{{ deployments | list }}"
-    # loop: "{{ query(deployments, 'all') }}"
+      # TODO: bring this back if this approach doesn't work (for kafka)
+      # repeat: "{{ item.repeat | default(1) }}"
+    ansible.builtin.include_tasks: tasks/containers/k8s/deployments/playbook_start_deployment.yml
+    loop: #"[{{ deployments }}]" # | list
+    - "{{ deployments.couchdb }}"
+    - "{{ deployments.zookeeper }}"
+
+
+  # POD IP'S (e.g. for the couchdb deployment):
+  #
+  #  kubectl get pods -l app=couchdb -o json | jq -r '.items[].status.podIPs[].ip'
+  #  kubectl get pods -l app=couchdb -o json | jq -r '.items[].status.podIP'
+  #
+  # CAN ALSO DO THIS:
+  #  kubectl scale deploy couchdb-deployment --replicas=0
+  #  kubectl scale deploy couchdb-deployment --replicas=1 //// or however many replicas we need
+  # THEN IP'S AVAILABLE IN ENVIRONMENT VARIABLES (or if the other svc's were created first!)
+  #
+  #   kubectl exec couchdb-deployment-585c44c897-pqlck -- printenv | grep SERVICE
+  #
+  #     available as:   <<<external-service-name>>>_SERVICE_PORT
+  #              and:   <<<external-service-name>>>_SERVICE_HOST
+
+  - name: Store Zookeeper Pod IP in register
+    ansible.builtin.shell: kubectl get pods -l app=zookeeper -o json | jq -r '.items[].status.podIP'
+    register: zookeeperPodIP
+
+# TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+# TODO: COME BACK TO THIS!!!! vvvvvvvvvvv
+# TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+# # TODO: may need to FIRST launch kafka with some dummy command
+#   #       THEN get each pod's IP
+#   #       THEN set up all the env vars
+#   #       AND FINALLY do a kubectl exec on each pod
+#   #
+#   #       ORRRRRRR maybe something w/ its own ENV VARS????
+  - name: Configure Kafka Deployment Environment Variables
+    vars:
+      targetDirectory: "{{ kafkaDeploymentDirectory }}"
+      envMap:
+        KAFKA_BIN_FILE: "{{ kafkaServerStart }}"
+        KAFKA_PROPS_FILE: "{{ kafkaServerProperties }}"
+        KAFKA_API_VERSIONS_BIN_FILE: "{{ kafkaApiVersionsBin }}"
+        # TODO: WHAT ARE THESE VALUES?????????????
+        # TODO: DOES THIS WORK?????
+        # ADVERTISED_IP: "{{ deploymentServiceNames.kafka }}"
+        # TODO: prob not this ^^^ and certainly not this vvv
+        ADVERTISED_IP: 127.0.0.1
+        ZOOKEEPER_IP: "{{ zookeeperPodIP.stdout_lines[0] }}"
+    ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_configure_deployment_environment_variables.yml
+#     # vars:
+#     #   targetVariable: "{{ item.envVar }}"
+#     #   updateValue: "{{ item.val }}"
+#     # ansible.builtin.shell: >-
+#     #   sed -i '$!N;0,/\(name: {{ targetVariable }}\n *value: \).*/s//\1{{ updateValue | replace('/', '\/') }}/;P;D' {{ zookeeperDeploymentFile }}
+#     # loop:
+#     # - envVar: ZOOKEEPER_BIN_FILE
+#     #   val: "{{ zookeeperServerStart }}"
+#     # - envVar: ZOOKEEPER_PROPS_FILE
+#     #   val: "{{ zookeeperProperties }}"
+
+
+  # - name: Deploy Kafka k8s App
+  #   vars:
+  #     appName: "{{ deployments.kafka.appName }}"
+  #     subDirectory: "{{ deployments.kafka.subDirectory }}"
+  #     deploymentName: "{{ deployments.kafka.deploymentName }}"
+  #     externalServiceName: "{{ deployments.kafka.externalServiceName }}"
+  #   ansible.builtin.include_tasks: tasks/containers/k8s/deployments/playbook_start_deployment.yml
+# TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+# TODO: COME BACK TO THIS!!!! ^^^^^^^^^
+# TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+
+
+
+
+  # - name: Deploy zookeeper app
+  #   vars:
+  #     host_url: kubemaster
+  #     name: zookeeper
+  #     container_name: zookeeper-deployment
+  #     registry_ip: kubemaster
+  #     registry_port: 5000
+  #     kafkaDirectory: /kafka_
+  #   ansible.builtin.include_tasks: tasks/containers/k8s/deployments/playbook_deploy_zookeeper.yml
+
+  # - name: Deploy kafka apps
+  #   vars:
+  #     host_url: kubemaster
+  #     name:
+  #   ansible.builtin.include_tasks: tasks/containers/k8s/deployments/playbook_deploy_kafka.yml
+
 
   # - name: Deploy
 
@@ -412,16 +524,16 @@
   #   vars:
   #     admin_user: admin
   #     admin_password: admin password
-  #   ansible.builtin.include_tasks: tasks/containers/k8s/deploy/playbook_deploy_couchdb_with_helm.yml
+  #   ansible.builtin.include_tasks: tasks/containers/k8s/deployments/playbook_deploy_couchdb_with_helm.yml
 # TODO: uncomment up to here!!!!!!!!!!!!!!!!
   # - name: Deploy couchdb k8s service and job
   #   vars:
   #     subDirectory: couchdb
-  #   ansible.builtin.include_tasks: tasks/containers/k8s/deploy/playbook_launch_k8s_deployment.yml
+  #   ansible.builtin.include_tasks: tasks/containers/k8s/deployments/playbook_launch_k8s_deployment.yml
   # - name: Deploy couchdb k8s service and job
   #   vars:
   #     subDirectory: couchdb
-  #   ansible.builtin.include_tasks: tasks/containers/k8s/deploy/playbook_deploy_k8s_svc_and_job.yml
+  #   ansible.builtin.include_tasks: tasks/containers/k8s/playbook_k8s_svc_and_job.yml
   # TODO: TODO: TODO: ^^^^^^ replace with playbook_start_deployment (it starts a deployment and waits for status)
 
   # - name: Build docker image
@@ -433,7 +545,7 @@
   #   vars:
   #     svc_path: "{{ containersDirectory }}/Service_Job/matinv-server-svc.yaml"
   #     pod_path: "{{ containersDirectory }}/Service_Job/matinv-server-job.yaml"
-  #   ansible.builtin.include_tasks: tasks/containers/k8s/deploy/playbook_deploy_k8s_svc_and_job.yml
+  #   ansible.builtin.include_tasks: tasks/containers/k8s/playbook_k8s_svc_and_job.yml
 
 
 

@@ -1,0 +1,33 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zookeeper-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zookeeper
+  minReadySeconds: 5
+  template:
+    metadata:
+      labels:
+        app: zookeeper
+    spec:
+      restartPolicy: Always
+      containers:
+      - name: zookeeper
+        # ansible needs to replace the "1.2.3.4"
+        image: 1.2.3.4:5000/teamx-zookeeper:latest
+        imagePullPolicy: Always
+        # ansible needs to give the environment variables the proper values
+        env:
+        - name: ZOOKEEPER_BIN_FILE
+          value: binValue
+        - name: ZOOKEEPER_PROPS_FILE
+          value: propsValue
+        ports:
+        - containerPort: 2181
+        command: ['$(ZOOKEEPER_BIN_FILE)']
+        args: ['$(ZOOKEEPER_PROPS_FILE)']
+...

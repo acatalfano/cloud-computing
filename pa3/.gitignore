@@ -5,3 +5,4 @@ file_srcs/containers/Deployment/
 file_srcs/containers/Job/
 file_srcs/containers/Service_Job/
 file_srcs/containers/README
+copied-from-remote/

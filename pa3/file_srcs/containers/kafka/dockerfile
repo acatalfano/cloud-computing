@@ -2,8 +2,39 @@
 # Vanderbilt University
 # Created December 2021
 #
+# TODO: maybe this instead vvvvv
+# FROM --platform=amd64 ubuntu:latest
 FROM ubuntu:latest
 
 RUN mkdir /kafka_
-ADD https://dlcdn.apache.org/kafka/3.0.0/kafka-3.0.0-src.tgz /
-RUN tar -xzf kafka-3.0.0-src.tgz -C /kafka_
+ADD https://dlcdn.apache.org/kafka/3.0.0/kafka_2.13-3.0.0.tgz /
+RUN tar -xvf kafka_2.13-3.0.0.tgz -C /kafka_ --strip-components 1
+RUN rm kafka_2.13-3.0.0.tgz
+# RUN chmod -R 555 /kafka_
+RUN apt-get update && apt-get install -y openjdk-11-jre
+
+# ENV KAFKA_HEAP_OPTS "-Xmx512M -Xms512M"\
+#     KAFKA_OPTS="-Djava.net.preferIPv4Stack=True"
+
+
+
+
+# for kafka...
+# broker.id=<<<UNIQUE>>>
+# listeners=PLAINTEXT://:9092
+# advertised.listeners=PLAINTEXT://S.E.L.F:9092
+# listener.security.protocol.map=PLAINTEXT:PLAINTEXT,SSL:SSL, SASL_PLAINTEXT:SASL_PLAINTEXT,SASL_SSL:SASL_SSL
+# zookeeper.connect=zoo.keep.er.ip:2181
+
+# 'daemon -- {{ kafkaDirectory }}/bin/kafka-server-start.sh {{ kafkaDirectory }}/config/server.properties'
+
+
+
+
+# for zookeeper...
+# clientPort=2181
+
+# export KAFKA_HEAP_OPTS="-xMS128m -xMX256m"
+# EXPORT kafka_opts="-Djava.net.preferIPv4Stack=True"
+
+# "daemon -- {{ kafkaDirectory }}/bin/zookeeper-server-start.sh {{ kafkaDirectory }}/config/zookeeper.properties"

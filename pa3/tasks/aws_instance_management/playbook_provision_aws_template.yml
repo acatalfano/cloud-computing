@@ -7,16 +7,17 @@
 # Create EC2 instances on AWS
 #
 # REQUIRES:
-#     instance_flavor - an AWS EC2 flavor
-#     instance_fact_name - a string defining the name of the fact that contains the created instance id
-#     sec_group_list - a list of security groups
+#     instanceFlavor - an AWS EC2 flavor
+#     instanceFactName - a string defining the name of the fact that contains the created instance id
+#     secGroupList - a list of security groups
 #     name - instance name
+#     includeVolumes - whether or not to include an EBS volume
 
 # - name: Provision AWS instances
 #   amazon.aws.ec2:
 #     key_name: "{{ key_name }}"
-#     group: "{{ sec_group_list }}"
-#     instance_type: "{{ instance_flavor }}"
+#     group: "{{ secGroupList }}"
+#     instance_type: "{{ instanceFlavor }}"
 #     image: "{{ image }}"
 #     wait: yes
 #     region: "{{ region }}"
@@ -26,21 +27,28 @@
 
 
 - name: Provision AWS instances
+  # vars:
+  #   volumes:
+  #   - delete_on_termination: yes
+  #     device_name: /dev/sda
+  #     volume_size: 1
+  #     volume_type: sc1
   amazon.aws.ec2_instance:
     name: "{{ name }}"
     key_name: "{{ key_name }}"
-    security_groups: "{{ sec_group_list }}"
-    instance_type: "{{ instance_flavor }}"
+    security_groups: "{{ secGroupList }}"
+    instance_type: "{{ instanceFlavor }}"
     image_id: "{{ image }}"
     region: "{{ region }}"
     vpc_subnet_id: "{{ subnet }}"
     network:
       assign_public_ip: yes
     state: running
+    # volumes: "{{ volumes if includeVolumes else [] }}"
     # wait: yes
   register: ec2
 
 - name: Create EC2 Instance Fact
   ansible.builtin.set_fact:
-    "{{ instance_fact_name }}": "{{ ec2.instances.0 }}"
+    "{{ instanceFactName }}": "{{ ec2.instances.0 }}"
 ...

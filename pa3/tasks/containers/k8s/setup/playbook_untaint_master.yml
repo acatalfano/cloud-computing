@@ -15,6 +15,7 @@
   ansible.builtin.shell: kubectl get nodes -o json | jq -r '.items[] | .spec.taints[]? | .key'
   register: taints
   until: '"node.kubernetes.io/not-ready" not in taints.stdout_lines'
+  retries: 6
 
 - name: Store Taint Key in Register
   ansible.builtin.shell: kubectl get nodes -o json | jq -r '.items[].spec.taints[0].key'

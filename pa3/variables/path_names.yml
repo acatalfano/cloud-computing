@@ -1,12 +1,23 @@
 ---
 containersDirectoryName: containers
-kafkaDirectory: ~/_kafka
-kafkaServerStart: ~/_kafka/bin/kafka-server-start.sh
-kafkaServerProperties: ~/_kafka/config/server.properties
-zookeeperServerStart: ~/_kafka/bin/zookeeper-server-start.sh
-zookeeperProperties: ~/_kafka/config/zookeeper.properties
-localVmVariables: ~/local_vars
-producerScript: ~/producer.py
 containersDirectory: "~/{{ containersDirectoryName }}"
 localContainersDirectory: "/vagrant/file_srcs/{{ containersDirectoryName }}"
+
+kafkaDeploymentDirectory: '{{ containersDirectory }}/kafka'
+zookeeperDeploymentDirectory: '{{ containersDirectory }}/zookeeper'
+
+# from the direct ansible-to-vm approach
+# kafkaDirectory: ~/_kafka
+kafkaDirectory: /kafka_
+zookeeperDirectory: "{{ kafkaDirectory }}"
+
+kafkaServerStart: "{{ kafkaDirectory }}/bin/kafka-server-start.sh"
+kafkaServerProperties: "{{ kafkaDirectory }}/config/server.properties"
+kafkaApiVersionsBin: "{{ kafkaDirectory }}/bin/kafka-broker-api-versions.sh"
+
+zookeeperServerStart: "{{ zookeeperDirectory }}/bin/zookeeper-server-start.sh"
+zookeeperProperties: "{{ zookeeperDirectory }}/config/zookeeper.properties"
+
+localVmVariables: ~/local_vars
+producerScript: ~/producer.py
 ...
