@@ -1,0 +1,89 @@
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: kafka-cluster
+spec:
+  kafka:
+...
+
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: kafka
+#   labels:
+#     app: kafka
+# spec:
+#   ports:
+#   - port: 9092
+#     name: kafka-port
+#   clusterIP: None
+#   selector:
+#     app: kafka
+# ---
+# apiVersion: apps/v1
+# kind: StatefulSet
+# metadata:
+#   name: kafka-set
+# spec:
+#   selector:
+#     matchLabels:
+#       app: kafka # has to match .spec.template.metadata.labels
+#   serviceName: "kafka"
+#   replicas: 1 # by default is 1
+#   minReadySeconds: 10 # by default is 0
+#   template:
+#     metadata:
+#       labels:
+#         app: kafka # has to match .spec.selector.matchLabels
+#     spec:
+#       terminationGracePeriodSeconds: 10
+#       containers:
+#       - name: kafka
+#         image: 54.197.27.174:5000/teamx-kafka-base:latest
+#         ports:
+#         - containerPort: 9092
+#           name: kafka-port
+#         env:
+#         - name: KAFKA_BIN_FILE
+#           value: /kafka_/bin/kafka-server-start.sh
+#         - name: KAFKA_PROPS_FILE
+#           value: /kafka_/config/server.properties
+#         - name: KAFKA_API_VERSIONS_BIN_FILE
+#           value: /kafka_/bin/kafka-broker-api-versions.sh
+#         # - name: ADVERTISED_IP
+#         #   value: 127.0.0.1
+#         # - name: ZOOKEEPER_IP
+#         #   value: 10.244.1.3
+#         - name: BROKER_ID
+#           value: '0'
+#         command:
+#         - $(KAFKA_BIN_FILE)
+#         - $(KAFKA_PROPS_FILE)
+#         - --override
+#         - listeners=PLAINTEXT://:9092
+#         - --override
+#         - advertised.listeners=PLAINTEXT://$(KUBERNETES_SERVICE_HOST):9092
+#         #- advertised.listeners=PLAINTEXT://$(ADVERTISED_IP):9092
+#         - --override
+#         - listener.security.protocol.map=PLAINTEXT
+#         - --override
+#         - listener.security.protocol.map=PLAINTEXT:PLAINTEXT,SSL:SSL,SASL_PLAINTEXT:SASL_PLAINTEXT,SASL_SSL:SASL_SSL
+#         - --override
+#         - zookeeper.connect=$(TEAMX_ZOOKEEPER_SERVICE_HOST):$(TEAMX_ZOOKEEPER_SERVICE_PORT)
+#         #- zookeeper.connect=$(ZOOKEEPER_IP):2181
+#         - --override
+#         - broker.id=$(BROKER_ID)
+# #       volumeMounts:
+# #       - mountPath: '/' #/kafka_/var/lib/kafka/data/ #/data/kafkainternal #/usr/share/kafka/internal
+# #         name: kafkainternal
+# # volumeClaimTemplates:
+# # - metadata:
+# #     name: kafkainternal
+# #   spec:
+# #     accessModes: [ "ReadWriteOnce" ]
+# #     #storageClassName: fast
+# #     resources:
+# #       requests:
+# #         storage: 1Mi
+# #         #1Gi
