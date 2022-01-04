@@ -16,17 +16,97 @@
     num: 4
     fileTarget: /vagrant/file_srcs/containers/zookeeper/deployment.yml
     baseSed: "sed '$!N;0,/\\(name: {{ targetVariable }}\\n *value: \\).*/s//\\1adam was here/;P;D'"
+    lst:
+    - first
+    - second
+    - third
 
   tasks:
-  - name: Map dict to list
-    vars:
-      data:
-        a: 1
-        b: 2
-        c: 3
-        d: 4
+  - name: test list-loop syntax
+    loop: "{{ lst }}"
     debug:
-      var: data | dict2items(key_name='alpha', value_name='numeric')
+      var: item
+
+
+
+  ################################################################################################################
+  # - name: Create strimzi directory
+  #   ansible.builtin.file:
+  #     state: directory
+  #     path: ~/strimzi
+
+  # - name: Download and Extract the Strimzi Kafka Operator (.tar.gz archive)
+  #   ansible.builtin.unarchive:
+  #     remote_src: yes
+  #     src: https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.27.0/strimzi-0.27.0.tar.gz
+  #     dest: ~/strimzi/
+  #     # creates: ~/strimzi/
+  #     extra_opts:
+  #     - --strip-components
+  #     - 1
+
+  # - name: store in register list of files with name like ~/strimzi/install/cluster-operator/*RoleBinding*.yaml
+  #   ansible.builtin.find:
+  #     paths:
+  #     - ~/strimzi/install/cluster-operator/
+  #     patterns: '*RoleBinding*.yaml'
+  #   register: roleBindingFiles
+
+  # - name: test out list of found files
+  #   debug:
+  #     msg: "{{ roleBindingFiles.files | map(attribute='path') | join(' ') }}"
+  #   # debug:
+  #   #   var: item
+  #   # with_fileglob:
+  #   # - '~/strimzi/install/cluster-operator/*RoleBinding*.yaml'
+
+  # - name: remove strimzi directory
+  #   ansible.builtin.file:
+  #     state: absent
+  #     path: ~/strimzi/
+
+  ################################################################################################################
+  # - name: try equality operator
+  #   vars:
+  #     tst: 'tst'
+  #   debug:
+  #     msg: "{{ tst == 'tst' }}"
+
+  ################################################################################################################
+  # - name: map range to list of dicts (store as fact)
+  #   ansible.builtin.set_fact:
+  #     data: "{{ data | default([]) + [{ 'ordinal': item.1, 'idx': item.0 }] }}"
+  #   loop: "{{ range(5) | zip(['first', 'second', 'third', 'fourth', 'fifth']) }}"
+  # - name: map range to list of dicts (store as fact)
+  #   ansible.builtin.set_fact:
+  #     data: "{{ data | default([]) + [{ 'ordinal': item, 'idx': idx }] }}"
+  #   loop:
+  #   - 'first'
+  #   - 'second'
+  #   - 'third'
+  #   - 'fourth'
+  #   - 'fifth'
+  #   loop_control:
+  #     index_var: idx
+
+  # - name: print out the fact
+  #   debug:
+  #     var: data
+
+
+
+
+  ################################################################################################################
+
+  # - name: Map dict to list
+  #   vars:
+  #     data:
+  #       a: 1
+  #       b: 2
+  #       c: 3
+  #       d: 4
+  #   debug:
+  #     var: data | dict2items(key_name='alpha', value_name='numeric')
 
 
   ################################################################################################################

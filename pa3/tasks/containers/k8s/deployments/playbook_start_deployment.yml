@@ -52,7 +52,7 @@
   retries: 6
 
 - name: Expose the Deployment App
-  ansible.builtin.shell: "kubectl expose deploy {{ deploymentName }} --type LoadBalancer --name {{ externalServiceName }}"
+  ansible.builtin.shell: "kubectl expose deploy {{ deploymentName }} --type NodePort --name {{ externalServiceName }}"
 # TODO: might not need this at all, but get nodename(s) (running the app's pod(s)) via:
 #       kubectl get pods -l 'app=couchdb' -o json | jq -r '.items[].spec.nodeName'
 

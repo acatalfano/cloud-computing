@@ -481,6 +481,11 @@
 #     # - envVar: ZOOKEEPER_PROPS_FILE
 #     #   val: "{{ zookeeperProperties }}"
 
+  # TODO: CONSIDER BRINGING THIS BACK!!!!!
+  # - name: Install and Configure Strimzi Kafka Operator for k8s
+  #   vars:
+  #     namespace: kafka
+  #   ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_install_and_setup_strimzi_kafka_operator.yml
 
   # - name: Deploy Kafka k8s App
   #   vars:
@@ -489,6 +494,12 @@
   #     deploymentName: "{{ deployments.kafka.deploymentName }}"
   #     externalServiceName: "{{ deployments.kafka.externalServiceName }}"
   #   ansible.builtin.include_tasks: tasks/containers/k8s/deployments/playbook_start_deployment.yml
+
+  - name: Deploy the kafka instances
+    vars:
+      instanceId: "{{ item }}"
+    loop: "{{ range(deployments.kafka.instanceCount) }}"
+    ansible.builtin.include_tasks: ./tasks/containers/k8s/deployments/playbook_deploy_kafka.yml
 # TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
 # TODO: COME BACK TO THIS!!!! ^^^^^^^^^
 # TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO

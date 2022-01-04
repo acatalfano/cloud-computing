@@ -13,7 +13,6 @@ deploymentServiceNames:
   zookeeper: teamx-zookeeper
   kafka: teamx-kafka
 
-
 # TODO: the replacements in the deployment files ON LOCAL VM!!!!
 
 deployments:
@@ -34,6 +33,9 @@ deployments:
     subDirectory: kafka
     deploymentName: kafka-deployment
     externalServiceName: "{{ deploymentServiceNames.kafka }}"
+    instanceCount: 5
+    #
+    # ports: "{{ range(5) }}"
     #   repeat: 5
     # TODO: drop the "repeat" variable if not necessary
 ...

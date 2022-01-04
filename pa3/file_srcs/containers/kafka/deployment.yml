@@ -82,7 +82,7 @@ spec:
         - name: ZOOKEEPER_IP
           value: ZOOKEEPER IP VALUE
         - name: BROKER_ID
-          value: BROKER ID VALUE
+          value: '0' #BROKER ID VALUE
         # command: ['/bin/bash', '-c', $(KAFKA_BIN_FILE)]
         # args:
         command:

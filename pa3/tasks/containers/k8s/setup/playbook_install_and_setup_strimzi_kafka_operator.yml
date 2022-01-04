@@ -1,0 +1,74 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano
+# Created: Fall 2021
+#
+# Install and Configure Strimzi Kafka Operator
+#
+# REQUIRES:
+#     namespace - namespace to use for the Strimzi Cluster Operator deployment
+
+- name: Create the kafka k8s Namespace
+  kubernetes.core.k8s:
+    name: kafka
+    api_version: v1
+    kind: Namespace
+    state: present
+
+
+# curl -L http://strimzi.io/install/latest | sed 's/namespace: .*/namespace: kafka/' | kubectl apply -f - -n kafka
+
+- name: Create strimzi directory
+  ansible.builtin.file:
+    state: directory
+    path: ~/strimzi
+
+- name: Download and Extract the Strimzi Kafka Operator (.tar.gz archive)
+  ansible.builtin.unarchive:
+    remote_src: yes
+    src: https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.27.0/strimzi-0.27.0.tar.gz
+    dest: ~/strimzi/
+    # creates: ~/strimzi/
+    extra_opts:
+    - --strip-components
+    - 1
+
+- name: store in register all files matching glob pattern ~/strimzi/install/cluster-operator/*RoleBinding*.yaml
+  ansible.builtin.find:
+    paths:
+    - ~/strimzi/install/cluster-operator/
+    patterns: '*RoleBinding*.yaml'
+  register: roleBindingFiles
+
+  # sed doesn't work with glob patterns in Bourne Shell (/bin/sh), so need to loop
+- name: "Set the namespace as {{ namespace }} in all Strimzi installation files"
+  vars:
+    sedFileTargets: "{{ roleBindingFiles.files | map(attribute='path') | join(' ') }}"
+  ansible.builtin.shell: "sed -i 's/namespace: .*/namespace: {{ namespace | default('default') }}/' {{ sedFileTargets }}"
+  # ansible.builtin.shell: "sed -i 's/namespace: .*/namespace: {{ namespace | default('default') }}/' {{ item }}"
+  # ansible.builtin.replace:
+  #   path: '{{ item }}'
+  #   regexp: '(?<=namespace: ).*$'
+  #   replace: '{{ namespace }}'
+  # with_fileglob:
+  # - '~/strimzi/install/cluster-operator/*RoleBinding*.yaml'
+
+- name: Create the Stimzi Custom Resource Definitions
+  ansible.builtin.shell: "kubectl create -f ~/strimzi/install/cluster-operator -n {{ namespace | default('default') }}"
+  #'https://strimzi.io/install/latest?namespace=kafka' -n kafka
+
+# - name: Create the Stimzi Custom Resource Definitions
+#   ansible.builtin.shell: kubectl create -f 'https://strimzi.io/install/latest?namespace=kafka' -n kafka
+
+# TODO: vvv this, except "kubectl get deployments -n {{ namespace | default('default') }}"
+# - name: Wait for the Custom Resource Definition to be ready
+#   ansible.builtin.shell: kubectl get pods -o json | jq -r '.items[0].status.phase'
+#   register: status
+#   until: status.stdout == 'Running'
+#   retries: 6
+
+# sed -i 's/namespace: .*/namespace: kafka/' ~/strimzi/install/cluster-operator/*RoleBinding*.yaml
+  #     ^^^ NOT FOUND (using /bin/sh)
+# - name:
+...
