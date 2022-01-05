@@ -4,14 +4,9 @@
 # Created: Fall 2021
 #
 # This playbook provisions the remote Instances
-# and starts running the Kafka/CouchDB architecture
-# with 2 Kafka brokers and 1 Zookeeper instance
-
-# NOTE: wherever 'kafka1' and 'kafka2' are mentioned,
-#     kafka1 = VM2 = kafka/zookeeper/consumer instance
-#     kafka2 = VM3 = kafka/couchDB instance
-
-# TODO: with FQCN I'm pretty sure the "collections:" field is unneeded
+# on which a k8s cluster is run to manage a
+# Kafka/Zookeeper/CouchDB workload
+# that takes in data from external producers
 
 #####################################################################
 ### Play 1: Terminate Any Existing Cloud Instances
@@ -31,7 +26,6 @@
 - name: 'Play 2: Install and Configure Base Dependencies'
   hosts: MyLocalVMs
   remote_user: ubuntu
-  # strategy: debug
 
   tasks:
   - name: Aptitude Upgrade
@@ -60,8 +54,6 @@
   strategy: debug
   vars_files:
   - variables/aws_vars.yml
-  collections:
-  - amazon.aws
 
   tasks:
   - name: Build AWS EC2 Security Groups
@@ -82,9 +74,6 @@
     couchdbIp: vm3Ip
     zookeeper_private_ip: vm2_private_ip
     couchdb_private_ip: vm3_private_ip
-  # strategy: debug
-  collections:
-  - amazon.aws
 
   tasks:
   - name: provision AWS instances
@@ -108,60 +97,6 @@
   #   # loop: "{{ jobFiles + deploymentFiles }}"
   #   loop: "{{ files }}"
 
-#####################################################################
-### Play 4: Install Common Dependencies on all Cloud Instances
-#
-# Aptitude Upgrade and Install Kafka on cloud instances
-#####################################################################
-# - name: 'Play 4: Install Common Dependencies on all Cloud Instances'
-#   hosts: "{{ allRemote }}"
-#   remote_user: ubuntu
-#   vars_files:
-#   - variables/path_names.yml
-#   - variables/group_names.yml
-#   collections:
-#   - amazon.aws
-#   # strategy: debug
-#   tasks:
-#   - ansible.builtin.include_tasks: tasks/playbook_aptitude_upgrade.yml
-#   - ansible.builtin.include_tasks: tasks/vms/common/playbook_install_kafka.yml
-#   - ansible.builtin.include_tasks: tasks/vms/common/playbook_common_kafka_configs.yml
-#   - name: Install daemon for running programs later (without termination)
-#     become: yes
-#     ansible.builtin.apt: name=daemon
-
-#####################################################################
-### Play 5: Install Dependencies on the VM3 Cloud Instance
-#
-# Install Zookeeper and Kafka on the Zookeeper/Kafka/Consumer host
-# Add and configure the consumer file
-#####################################################################
-# - name: 'Play 5: Install Dependencies on Zookeeper/Kafka/Consumer Cloud Instance'
-#   hosts: "{{ kafka1ZookeeperConsumer }}"
-#   remote_user: ubuntu
-#   vars_files:
-#   - variables/group_names.yml
-#   # strategy: debug
-#   tasks:
-#   - ansible.builtin.include_tasks: tasks/vms/vm2/playbook_configure_zookeeper.yml
-#   - ansible.builtin.include_tasks: tasks/vms/vm2/playbook_install_python_dependencies.yml
-
-#   - name: copy consumer.py over to remote instance
-#     ansible.builtin.copy:
-#       src: file_srcs/consumer.py
-#       dest: ~/consumer.py
-
-#   - name: set couchDB username variable in consumer.py
-#     ansible.builtin.replace:
-#       path: ~/consumer.py
-#       regexp: (?<=username = ')[^']*(?=')
-#       replace: admin
-
-#   - name: set couchDB password variable in consumer.py
-#     ansible.builtin.replace:
-#       path: ~/consumer.py
-#       regexp: (?<=password = ')[^']*(?=')
-#       replace: admin%20password
 #####################################################################
 ### Play 5: Install Docker + K8S and setup kubectl tab-completion
 #
@@ -197,8 +132,6 @@
   - variables/credentials/couchdb_admin.yml
   - variables/container_vars.yml
   strategy: debug
-  collections:
-  - community.docker
 
   tasks:
   - name: Set Hostname Aliases on K8S Master
@@ -207,9 +140,6 @@
       lines:
       - "{{ inventory_hostname }} kubemaster kubeworker1"
       - "{{ hostvars['127.0.0.1'].vm2_private_ip }} kubemaster kubeworker1"
-      # TODO: these 2 lines really needed???
-      # - 127.0.0.1 localhost
-      # - 127.0.1.1 acat-vm3.novalocal acat-vm3
     ansible.builtin.lineinfile:
       path: /etc/hosts
       line: "{{ lines | join('\n') }}"
@@ -219,9 +149,6 @@
       src: file_srcs/containers/
       dest: "{{ containersDirectory }}"
 
-  # TODO TODO TODO TODO
-  # TODO UNCOMMENT IF THIS DOESNT WORK!!!!
-  # TODO TODO TODO TODO
   - name: Configure image server IP address
     vars:
       containerSubDirectories:
@@ -261,6 +188,14 @@
         ZOOKEEPER_PROPS_FILE: "{{ zookeeperProperties }}"
     ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_configure_deployment_environment_variables.yml
 
+  - name: Set the service name for zookeeper
+    ansible.builtin.replace:
+      before: apps/v1
+      after: 'metadata:'
+      path: "{{ containersDirectory }}/couchdb/deployment.yml"
+      regexp: '(?<=name: ).*'
+      replace: "{{ deploymentServiceNames.zookeeper }}"
+
   - name: Set CouchDB AdmUser in deployment.yml
     ansible.builtin.replace:
       path: "{{ containersDirectory }}/couchdb/deployment.yml"
@@ -289,12 +224,6 @@
       - pyyaml>=3.10,<6
       - websocket-client>=0.32.0,<1
 
-  # - name: Change permissions for docker.sock file
-  #   become: yes
-  #   ansible.builtin.file:
-  #     path: /var/run/docker.sock
-  #     mode: 0666
-
   - name: Install docker compose
     ansible.builtin.include_tasks: tasks/containers/docker/playbook_install_docker_compose.yml
 
@@ -308,43 +237,9 @@
       dest: ~/registry/docker-compose.yml
       src: ./file_srcs/registry/docker-compose.yml
 
-  # TODO: pretty sure this is not needed anymore vvvv
-  # - name: Setup registry credentials
-  #   ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_setup_registry_credentials.yml
-
   - name: Compose the registry
     community.docker.docker_compose:
       project_src: ~/registry/
-  # TODO: replacing this one vvvv
-  # - name: Launch the docker private registry
-  #   become: yes
-  #   community.docker.docker_container:
-  #     name: registry
-  #     image: registry:2
-  #     published_ports:
-  #     - 5000:5000
-  #     detach: yes
-  #     restart_policy: always
-
-  # - name: Start private registry
-  #   ansible.builtin.shell: daemon -D ~/ -- docker-compose up
-  # - name: Install pip
-  #   become: yes
-  #   ansible.builtin.apt:
-  #     name:
-  #     - python3-pip
-
-  # - name: Install docker python package
-  #   become: yes
-  #   ansible.builtin.pip:
-  #     name:
-  #     - docker
-
-  # - name: 'DIRTY HACK (if it works...): copy ~/registry/auth to ~/auth'
-  #   ansible.builtin.copy:
-  #     remote_src: yes
-  #     dest: ~/auth
-  #     src: ~/registry/auth
 
   - name: Start and Prepare K8S Master
     ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_start_and_prepare_k8s_master.yml
@@ -375,9 +270,6 @@
       lines:
       - "{{ inventory_hostname }} kubeworker2"
       - "{{ hostvars['127.0.0.1'].vm3_private_ip }} kubeworker2"
-      # TODO: these 2 lines really needed???
-      # - 127.0.0.1 localhost
-      # - 127.0.1.1 acat-vm3.novalocal acat-vm3
     ansible.builtin.lineinfile:
       path: /etc/hosts
       line: "{{ lines | join('\n') }}"
@@ -401,8 +293,7 @@
   - variables/path_names.yml
   - variables/container_vars.yml
   - variables/path_names.yml
-  collections:
-  - community.docker
+
   tasks:
   - name: Untaint K8S Master
     ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_untaint_master.yml
@@ -412,18 +303,15 @@
       registry_ip: "{{ inventory_hostname }}"
     ansible.builtin.include_tasks: tasks/containers/docker/playbook_build_docker_images.yml
 
-  # TODO: may wanna change it to be "deploy couchdb" since they're going to be different enough...
-  #           actually no, prob wanna revert to be doing it loopwise again
   - name: Deploy Couchdb and Zookeeper k8s Apps
     vars:
       appName: "{{ item.appName }}"
       subDirectory: "{{ item.subDirectory }}"
       deploymentName: "{{ item.deploymentName }}"
       externalServiceName: "{{ item.externalServiceName }}"
-      # TODO: bring this back if this approach doesn't work (for kafka)
-      # repeat: "{{ item.repeat | default(1) }}"
+      deploySeparately: "{{ item.deploySeparately }}"
     ansible.builtin.include_tasks: tasks/containers/k8s/deployments/playbook_start_deployment.yml
-    loop: #"[{{ deployments }}]" # | list
+    loop:
     - "{{ deployments.couchdb }}"
     - "{{ deployments.zookeeper }}"
 
@@ -443,19 +331,10 @@
   #     available as:   <<<external-service-name>>>_SERVICE_PORT
   #              and:   <<<external-service-name>>>_SERVICE_HOST
 
-  - name: Store Zookeeper Pod IP in register
-    ansible.builtin.shell: kubectl get pods -l app=zookeeper -o json | jq -r '.items[].status.podIP'
-    register: zookeeperPodIP
+  # - name: Store Zookeeper Pod IP in register
+  #   ansible.builtin.shell: kubectl get pods -l app=zookeeper -o json | jq -r '.items[].status.podIP'
+  #   register: zookeeperPodIP
 
-# TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-# TODO: COME BACK TO THIS!!!! vvvvvvvvvvv
-# TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-# # TODO: may need to FIRST launch kafka with some dummy command
-#   #       THEN get each pod's IP
-#   #       THEN set up all the env vars
-#   #       AND FINALLY do a kubectl exec on each pod
-#   #
-#   #       ORRRRRRR maybe something w/ its own ENV VARS????
   - name: Configure Kafka Deployment Environment Variables
     vars:
       targetDirectory: "{{ kafkaDeploymentDirectory }}"
@@ -465,176 +344,18 @@
         KAFKA_API_VERSIONS_BIN_FILE: "{{ kafkaApiVersionsBin }}"
         # TODO: WHAT ARE THESE VALUES?????????????
         # TODO: DOES THIS WORK?????
-        # ADVERTISED_IP: "{{ deploymentServiceNames.kafka }}"
+        # ADVERTISED_DNS: "{{ deploymentServiceNames.kafka }}"
         # TODO: prob not this ^^^ and certainly not this vvv
-        ADVERTISED_IP: 127.0.0.1
-        ZOOKEEPER_IP: "{{ zookeeperPodIP.stdout_lines[0] }}"
+        ZOOKEEPER_DNS: "{{ deploymentServiceNames.zookeeper }}"
     ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_configure_deployment_environment_variables.yml
-#     # vars:
-#     #   targetVariable: "{{ item.envVar }}"
-#     #   updateValue: "{{ item.val }}"
-#     # ansible.builtin.shell: >-
-#     #   sed -i '$!N;0,/\(name: {{ targetVariable }}\n *value: \).*/s//\1{{ updateValue | replace('/', '\/') }}/;P;D' {{ zookeeperDeploymentFile }}
-#     # loop:
-#     # - envVar: ZOOKEEPER_BIN_FILE
-#     #   val: "{{ zookeeperServerStart }}"
-#     # - envVar: ZOOKEEPER_PROPS_FILE
-#     #   val: "{{ zookeeperProperties }}"
-
-  # TODO: CONSIDER BRINGING THIS BACK!!!!!
-  # - name: Install and Configure Strimzi Kafka Operator for k8s
-  #   vars:
-  #     namespace: kafka
-  #   ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_install_and_setup_strimzi_kafka_operator.yml
-
-  # - name: Deploy Kafka k8s App
-  #   vars:
-  #     appName: "{{ deployments.kafka.appName }}"
-  #     subDirectory: "{{ deployments.kafka.subDirectory }}"
-  #     deploymentName: "{{ deployments.kafka.deploymentName }}"
-  #     externalServiceName: "{{ deployments.kafka.externalServiceName }}"
-  #   ansible.builtin.include_tasks: tasks/containers/k8s/deployments/playbook_start_deployment.yml
 
   - name: Deploy the kafka instances
     vars:
       instanceId: "{{ item }}"
     loop: "{{ range(deployments.kafka.instanceCount) }}"
     ansible.builtin.include_tasks: ./tasks/containers/k8s/deployments/playbook_deploy_kafka.yml
-# TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-# TODO: COME BACK TO THIS!!!! ^^^^^^^^^
-# TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
 
-
-
-
-  # - name: Deploy zookeeper app
-  #   vars:
-  #     host_url: kubemaster
-  #     name: zookeeper
-  #     container_name: zookeeper-deployment
-  #     registry_ip: kubemaster
-  #     registry_port: 5000
-  #     kafkaDirectory: /kafka_
-  #   ansible.builtin.include_tasks: tasks/containers/k8s/deployments/playbook_deploy_zookeeper.yml
-
-  # - name: Deploy kafka apps
-  #   vars:
-  #     host_url: kubemaster
-  #     name:
-  #   ansible.builtin.include_tasks: tasks/containers/k8s/deployments/playbook_deploy_kafka.yml
-
-
-  # - name: Deploy
-
-  # TODO: now expose...
-
-  # - name: Install Helm
-  #   ansible.builtin.include_tasks: tasks/containers/playbook_install_helm.yml
-
-  # - name: Deploy CouchDB
-  #   vars:
-  #     admin_user: admin
-  #     admin_password: admin password
-  #   ansible.builtin.include_tasks: tasks/containers/k8s/deployments/playbook_deploy_couchdb_with_helm.yml
-# TODO: uncomment up to here!!!!!!!!!!!!!!!!
-  # - name: Deploy couchdb k8s service and job
-  #   vars:
-  #     subDirectory: couchdb
-  #   ansible.builtin.include_tasks: tasks/containers/k8s/deployments/playbook_launch_k8s_deployment.yml
-  # - name: Deploy couchdb k8s service and job
-  #   vars:
-  #     subDirectory: couchdb
-  #   ansible.builtin.include_tasks: tasks/containers/k8s/playbook_k8s_svc_and_job.yml
-  # TODO: TODO: TODO: ^^^^^^ replace with playbook_start_deployment (it starts a deployment and waits for status)
-
-  # - name: Build docker image
-  #   vars:
-  #     registry_ip: "{{ inventory_hostname }}"
-  #   ansible.builtin.include_tasks: tasks/containers/docker/playbook_build_docker_image.yml
-
-  # - name: Deploy matinv k8s service and job
-  #   vars:
-  #     svc_path: "{{ containersDirectory }}/Service_Job/matinv-server-svc.yaml"
-  #     pod_path: "{{ containersDirectory }}/Service_Job/matinv-server-job.yaml"
-  #   ansible.builtin.include_tasks: tasks/containers/k8s/playbook_k8s_svc_and_job.yml
-
-
-
-#####################################################################
-### Play 8: Start Zookeeper on the VM2 Cloud Instance
-#
-# Start Zookeeper on the Zookeeper/Kafka/Consumer host
-#####################################################################
-# - name: 'Play 8: Install Dependencies on CouchDB/Kafka Cloud Instance'
-#   hosts: "{{ kafka1ZookeeperConsumer }}"
-#   remote_user: ubuntu
-#   vars_files:
-#   - variables/group_names.yml
-#   - variables/path_names.yml
-#   # strategy: debug
-#   tasks:
-#   - name: Start Zookeeper
-#     ansible.builtin.shell: "daemon -- {{ kafkaDirectory }}/bin/zookeeper-server-start.sh {{ kafkaDirectory }}/config/zookeeper.properties"
-
-
-
-#####################################################################
-### Play 9: Run CouchDB on vm3
-#
-# Start up CouchDB on the Zookeeper/Kafka host
-#####################################################################
-# - name: 'Play 9: Run CouchDB on vm3'
-#   hosts: "{{ kafka2CouchDB }}"
-#   remote_user: ubuntu
-#   vars_files:
-#   - variables/group_names.yml
-#   tasks:
-#   - name: Start The CouchDB Service
-#     become: yes
-#     service:
-#       name: couchdb
-#       state: restarted
-
-
-#####################################################################
-### Play 10: Run Kafka on all remotes
-#
-# Start up Kafka on all remote hosts
-#####################################################################
-# - name: 'Play 10: Run Kafka on all remote hosts'
-#   hosts: "{{ allRemote }}"
-#   remote_user: ubuntu
-#   vars_files:
-#   - variables/group_names.yml
-#   - variables/path_names.yml
-#   vars:
-#     provisionerIp: "{{ groups['MyLocalVMs'].0 }}"
-#   tasks:
-#   - ansible.builtin.include_tasks: tasks/execute/playbook_start_kafka.yml
-#     vars:
-#       zookeeperIp: "{{ hostvars[provisionerIp]['vm2Ip'] }}"
-
-
-#####################################################################
-### Play 11: Run Kafka and Consumer on vm2
-#
-# Start up Consumer on the Zookeeper/Kafka/Consumer host
-#####################################################################
-# - name: 'Play 11: Run Consumer on vm2'
-#   hosts: "{{ kafka1ZookeeperConsumer }}"
-#   remote_user: ubuntu
-#   vars_files:
-#   - variables/path_names.yml
-#   - variables/group_names.yml
-#   vars:
-#     provisionerIp: "{{ groups['MyLocalVMs'].0 | default('127.0.0.1') }}"
-
-#   tasks:
-#   - ansible.builtin.include_tasks: tasks/execute/playbook_start_consumer.yml
-#     vars:
-#       zookeeperIp: "{{ hostvars[provisionerIp]['vm2Ip'] }}"
-#       couchDBIp: "{{ hostvars[provisionerIp]['vm3Ip'] }}"
-
+# TODO: still need to run consumer
 
 #####################################################################
 ### Play 12: Provision Producers and run script

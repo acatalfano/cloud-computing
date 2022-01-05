@@ -1,4 +1,19 @@
 ---
+apiVersion: v1
+kind: Service
+# ansible replaces the service name
+metadata:
+  name: zookeeper
+  labels:
+    app: zookeeper
+spec:
+  type: NodePort
+  ports:
+  - port: 2181
+    targetPort: 2181
+  selector:
+    app: zookeeper
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:

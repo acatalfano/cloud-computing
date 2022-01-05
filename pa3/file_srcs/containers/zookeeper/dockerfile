@@ -2,25 +2,4 @@
 # Vanderbilt University
 # Created December 2021
 #
-# FROM ubuntu:latest
 FROM teamx-kafka-base:latest
-
-# TODO: any additional config needed?
-
-# RUN apt-get -y update && apt-get install -y net-tools python3 gcc
-# RUN apt-get install -y python3-dev python3-pip
-# RUN python3 -m pip install --upgrade pip
-# RUN pip3 install --upgrade numpy
-# RUN pip3 install --upgrade pyzmq
-# RUN mkdir /kafka_
-# RUN wget https://dlcdn.apache.org/kafka/3.0.0/kafka-3.0.0-src.tgz
-# RUN tar -xzf kafka-3.0.0-src.tgz /kafka_
-# TODO: any other deps???
-
-#
-# Next, copy our matrix inverse server code into container image
-# TODO: not this vvv (but copy over anything we need!)
-# COPY matinv_server.py /
-#
-# Run a command shell (for Swarm and Kubernetes, we comment this out)
-#CMD /bin/bash

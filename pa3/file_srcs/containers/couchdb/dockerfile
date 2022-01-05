@@ -6,38 +6,10 @@
 #FROM ubuntu:latest
 FROM apache/couchdb:latest
 
-# TODO: in /opt/couchdb/etc/local.ini:
-#       after [admins]
-#           add:
-#               admin = admin password
-#       after [chttpd]
-#           add:
-#               port = 5984
-#               bind_address = 0.0.0.0
-# TODO: ^^^^^^ for this, see if you can use:
-#                                           sed
-# TODO: copy default.ini and set mode=0640
-
-# ENV COUCHDB_USER 'admin'\
-#     COUCHDB_PASSWORD 'admin password'
-
-# TODO: vvvvv of local.ini?????
-# COPY ./default.ini /opt/couchdb/etc/default.ini
-# RUN chmod 0640 /opt/couchdb/etc/default.ini
-
 COPY ./local.ini /opt/couchdb/etc/local.ini
 RUN chmod 0640 /opt/couchdb/etc/local.ini
 # EXPOSE 5984
 # TODO: EXPOSE 5984   ???
-
-# RUN mkdir /db
-# RUN apt-get -y update && apt-get install -y curl apt-transport-https gnupg
-# RUN curl https://couchdb.apache.org/repo/keys.asc | gpg --dearmor > /usr/share/keyrings/couchdb-archive-keyring.gpg
-# # TODO: may need to do "| (sudo) tee /usr/share/keyrings/couchdb-archive-keyring.gpg >/dev/null 2>&1" instead...
-# RUN source /etc/os-release
-# RUN echo "deb [signed-by=/usr/share/keyrings/couchdb-archive-keyring.gpg] https://apache.jfrog.io/artifactory/douchdb-deb/${VERSION_CODENAME} main" \
-#     > /etc/apt/sources.list.d/couchdb.list
-# # TODO: may need to do "| (sudo) tee /etc/apt/sources.list.d/couchdb.list >/dev/null 2>&1" instead...
 
 # RUN apt-get -y update && apt-get -y install couchdb
 

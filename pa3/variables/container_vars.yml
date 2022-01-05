@@ -11,31 +11,29 @@ images:
 deploymentServiceNames:
   couchdb: teamx-couchdb
   zookeeper: teamx-zookeeper
+  # for kafka, this is a prefix, to be appended with "-BROKER_ID"
   kafka: teamx-kafka
-
-# TODO: the replacements in the deployment files ON LOCAL VM!!!!
 
 deployments:
   couchdb:
     appName: couchdb
     subDirectory: couchdb
     deploymentName: couchdb-deployment
+    deploySeparately: yes
     externalServiceName: "{{ deploymentServiceNames.couchdb }}"
 
   zookeeper:
     appName: zookeeper
     subDirectory: zookeeper
     deploymentName: zookeeper-deployment
+    deploySeparately: no
     externalServiceName: "{{ deploymentServiceNames.zookeeper }}"
 
   kafka:
     appName: kafka
     subDirectory: kafka
     deploymentName: kafka-deployment
+    deploySeparately: no
     externalServiceName: "{{ deploymentServiceNames.kafka }}"
     instanceCount: 5
-    #
-    # ports: "{{ range(5) }}"
-    #   repeat: 5
-    # TODO: drop the "repeat" variable if not necessary
 ...

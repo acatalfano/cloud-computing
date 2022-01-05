@@ -6,8 +6,6 @@ localContainersDirectory: "/vagrant/file_srcs/{{ containersDirectoryName }}"
 kafkaDeploymentDirectory: '{{ containersDirectory }}/kafka'
 zookeeperDeploymentDirectory: '{{ containersDirectory }}/zookeeper'
 
-# from the direct ansible-to-vm approach
-# kafkaDirectory: ~/_kafka
 kafkaDirectory: /kafka_
 zookeeperDirectory: "{{ kafkaDirectory }}"
 

@@ -8,7 +8,8 @@
 #
 # REQUIRES:
 #   security_groups - a list of dict's, each with name and optionally in_rules and/or out_rules
-#   vpc_id - a string
+#   vpc_id - AWS VPC ID for EC2
+#   region - AWS region
 
 
 - name: create a security group
@@ -20,12 +21,4 @@
     region: "{{ region }}"
     rules: "{{ item.in_rules | default([]) | asSecGroupRules }}"
     rules_egress: "{{ item.out_rules | default([]) | asSecGroupRules }}"
-
-# - name: lets try it out
-#   loop: "{{ security_groups }}"
-  # ansible.builtin.include_tasks: playbook_create_security_groups_loop_task.yml
-  # vars:
-  #   sec_group: "{{ item }}"
-  #   vpcid: "{{ vpc_id }}"
-  #   _region: "{{ region }}"
 ...

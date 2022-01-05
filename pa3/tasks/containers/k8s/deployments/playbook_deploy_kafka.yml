@@ -11,80 +11,37 @@
 #   kafkaDeploymentDirectory - path (on remote) to directory containing deployment.yml for kafka deployment
 #   deployments.kafka - (config from the container_vars.yml file)
 
-
-
-# REQUIRES:
-#   host_url - location of the api
-#   name - name of the deployment
-#   container_prefix - prefix to name given to the containers in this deployment
-#   registry_ip - IP address of image registry
-#   registry_port - port on which the image registry serves up container images
-#   kafkaDirectory - directory where kafka is installed
-#   advertised_ip - the public IP a client uses to send to this Kafka broker
-#   zookeeperIp - the public IP of the zookeeper server
-#   deploymentCount - number of kafka servers to launch
-
-# - name: Create Containers List as a Fact
-#   vars:
-#     config_opts:
-#     - listeners=PLAINTEXT://:9092
-#     - "advertised.listeners=PLAINTEXT://{{ advertised_ip }}:9092"
-#     - listener.security.protocol.map=PLAINTEXT
-#     - listener.security.protocol.map=PLAINTEXT:PLAINTEXT,SSL:SSL,SASL_PLAINTEXT:SASL_PLAINTEXT,SASL_SSL:SASL_SSL
-#     - "zookeeper.connect={{ zookeeperIp }}:2181"
-#     - "broker.id={{ item }}"
-#     config_opts_with_flag: "{{ config_opts | flatOptions('--override') }}"
-#   ansible.builtin.set_fact:
-#     countainers:
-#       "{{
-#         containers | default([])
-#         + [
-#           {
-#             'name': container_prefix + '-' + item
-#             'image': registry_ip + ':' + registry_port + '/' + container_name
-#             'imagePullPolicy': 'Always'
-#             'ports': ['containerPort': 9092]
-#             'command': ['daemon']
-#             'args':
-#                 [ '--' ] +
-#                 [ kafka_server_bin_file ] +
-#                 [ kafka_server_props_file ] +
-#                 config_opts_with_flag +
-#                 [ '--override', brokerId ] +
-#                 ['-Djava.net.preferIPv4Stack=True', '-Xms128M', '-Xmx256M']
-#           }
-#         ]
-#       }}"
-#   loop: "{{ range(podCount) | list }}"
+- name: Set Kafka service-name with instanceId suffic
+  ansible.builtin.replace:
+    path: "{{ kafkaDeploymentDirectory }}/deployment.yml"
+    regexp: '(?<=name: kafka-broker).*'
+    replace: "-{{ instanceId }}"
 
 - name: Set Kafka app-name with instanceId suffix
   ansible.builtin.replace:
     path: "{{ kafkaDeploymentDirectory }}/deployment.yml"
     regexp: '(?<=app: kafka).*'
     replace: "-{{ instanceId }}"
+    after: apps/v1
 
 - name: Set Kafka app deployment-name with instanceId suffix
   ansible.builtin.replace:
     path: "{{ kafkaDeploymentDirectory }}/deployment.yml"
     regexp: '(?<=name: kafka-deployment).*'
     replace: "-{{ instanceId }}"
-    after: 'metadata:'
+    after: apps/v1
     before: 'spec:'
-
-  # ansible.builtin.shell: >-
-  #   sed -i 'N;0,/\(name: {{ item.varName }}\n *value: \).*/s//\1{{ item.varValue | replace('/', '\/') }}/;P;D' {{ targetDirectory }}/deployment.yml
 
 - name: Set Kafka app container-name with instanceId suffix
   ansible.builtin.shell: >-
     sed 'N;0,/\(containers: *\n *- name: kafka\).*/s//\1-{{ instanceId }}/;P;D' {{ kafkaDeploymentDirectory }}/deployment.yml
-  # sed -i 'N;0,/\(name: {{ item.varName }}\n *value: \).*/s//\1{{ item.varValue | replace('/', '\/') }}/;P;D' {{ kafkaDeploymentDirectory }}/deployment.yml
 
-# - name: "Configure Kafka Deployment BROKER_ID Environment Variable For Instance {{ instanceId }}"
-- name: Configure Kafka Deployment BROKER_ID Environment Variable For Instance
+- name: Configure Kafka Deployment BROKER_ID and ADVERTISED_DNS Environment VariableS For Instance
   vars:
     targetDirectory: "{{ kafkaDeploymentDirectory }}"
     envMap:
       BROKER_ID: "\"{{ instanceId }}\""
+      ADVERTISED_DNS: "{{ deploymentServiceNames.kafka }}-{{ instanceId }}"
   ansible.builtin.include_tasks: ../setup/playbook_configure_deployment_environment_variables.yml
 
 - name: "Create Kafka Instance"
@@ -93,108 +50,6 @@
     subDirectory: "{{ deployments.kafka.subDirectory }}"
     deploymentName: "{{ deployments.kafka.deploymentName }}-{{ instanceId }}"
     externalServiceName: "{{ deployments.kafka.externalServiceName }}-{{ instanceId }}"
+    deploySeparately: no
   ansible.builtin.include_tasks: ./playbook_start_deployment.yml
-
-# TODO TODO TODO TODO TODO this was the last one that was open...
-# - name: Deploy Kafka App
-#   vars:vars:
-#     config_opts:
-#     - listeners=PLAINTEXT://:9092
-#     - "advertised.listeners=PLAINTEXT://{{ advertised_ip }}:9092"
-#     - listener.security.protocol.map=PLAINTEXT
-#     - listener.security.protocol.map=PLAINTEXT:PLAINTEXT,SSL:SSL,SASL_PLAINTEXT:SASL_PLAINTEXT,SASL_SSL:SASL_SSL
-#     - "zookeeper.connect={{ zookeeperIp }}:2181"
-#     - "broker.id={{ item }}"
-#     kafka_server_props_file: "{{ kafkaDirectory }}/config/server.properties"
-#     kafka_server_bin_file: "{{ kafkaDirectory }}/bin/kafka-server-start.sh"
-#     config_opts_with_flag: "{{ config_opts | flatOptions('--override') }}"
-#   kubernetes.core.k8s:
-#     apiVersion: batch/v1
-#     kind: Deployment
-#     host: "{{ host_url }}"
-#     name: "{{ name }}-{{ item }}"
-#     resource_definition:
-#       spec:
-#         replicas: 1
-#         selector:
-#           matchLabels:
-#             app: kafka
-#         minReadySeconds: 5
-#         template:
-#           metadata:
-#             labels:
-#               app: kafka
-#           spec:
-#             restartPolicy: Always # or Never????
-#             containers:
-#             - name: "{{ container_prefix }}- {{ item }}"
-#               image: registry_ip + ':' + registry_port + '/' + container_name
-#               imagePullPolicy: 'Always'
-#               ports: ['containerPort': 9092]
-#               # command: ['daemon']
-#               command:
-#                 "{{
-#                     [kafka_server_bin_file, kafka_server_props_file] +
-#                     config_opts_with_flag
-#                 }}"
-#               # TODO: need the -Djava.net.preferIPv4Stack=True -Xms128M -Xmx256M ????
-#               # args:
-#               #   "{{
-#               #     [ '--' ] +
-#               #     [ kafka_server_bin_file ] +
-#               #     [ kafka_server_props_file ] +
-#               #     config_opts_with_flag +
-#               #     [ '--override', brokerId ] +
-#               #     ['-Djava.net.preferIPv4Stack=True', '-Xms128M', '-Xmx256M']
-#               #   }}"
-#   loop: "{{ range(deploymentCount) | list }}"
-
-# - name: Deploy Kafka App
-#   vars:
-#     kafka_server_props_file: "{{ kafkaDirectory }}/config/server.properties"
-#     kafka_server_bin_file: "{{ kafkaDirectory }}/bin/kafka-server-start.sh"
-#     config_opts:
-#     - listeners=PLAINTEXT://:9092
-#     - "advertised.listeners=PLAINTEXT://{{ advertised_ip }}:9092"
-#     - listener.security.protocol.map=PLAINTEXT
-#     - listener.security.protocol.map=PLAINTEXT:PLAINTEXT,SSL:SSL,SASL_PLAINTEXT:SASL_PLAINTEXT,SASL_SSL:SASL_SSL
-#     - "zookeeper.connect={{ zookeeperIp }}:2181"
-#     config_opts_with_flag: "{{ config_opts | flatOptions('--override') }}"
-#   kubernetes.core.k8s:
-#     apiVersion: batch/v1
-#     kind: Deployment
-#     host: "{{ host_url }}"
-#     name: "{{ name }}"
-#     resource_definition:
-#       spec:
-#         replicas: "{{ podCount }}" # was 1...
-#         selector:
-#           matchLabels:
-#             app: kafka
-#         minReadySeconds: 5
-#         template:
-#           metadata:
-#             labels:
-#               app: kafka
-#           spec:
-#             restartPolicy: Always # or Never????
-#             # hostname: "{{ pod_hostname }}"
-#             # nodeSelector:
-#             #   kubernetes.io/hostname: "{{ node_hostname }}"
-#             containers: "{{ containers }}"
-#             # - name: "{{ container_name }}"
-#             #   image: "{{ registry_ip }}:{{ registry_port }}/{{ container_name }}" # {{ registry_port | default('5000') }}/{{ container_name | default('teamx-kafka-base:latest') }}"
-#             #   imagePullPolicy: Always
-#             #   ports:
-#             #   - containerPort: 9092
-#             #   command: ['daemon']
-#             #   # TODO: how to be looping this???
-#             #   args: "{{
-#             #       [ '--' ] +
-#             #       [ kafka_server_bin_file ] +
-#             #       [ kafka_server_props_file ] +
-#             #       config_opts_with_flag +
-#             #       [ '--override', brokerId ] +
-#             #       ['-Djava.net.preferIPv4Stack=True', '-Xms128M', '-Xmx256M']
-#             #     }}"
 ...
