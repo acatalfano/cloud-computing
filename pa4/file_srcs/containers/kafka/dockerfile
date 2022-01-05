@@ -1,0 +1,11 @@
+# Author: Adam Catalfano, Abhinav Jambulingam
+# Vanderbilt University
+# Created December 2021
+#
+FROM ubuntu:latest
+
+RUN mkdir /kafka_
+ADD https://dlcdn.apache.org/kafka/3.0.0/kafka_2.13-3.0.0.tgz /
+RUN tar -xvf kafka_2.13-3.0.0.tgz -C /kafka_ --strip-components 1
+RUN rm kafka_2.13-3.0.0.tgz
+RUN apt-get update && apt-get install -y openjdk-11-jre

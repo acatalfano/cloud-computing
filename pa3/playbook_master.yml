@@ -342,10 +342,6 @@
         KAFKA_BIN_FILE: "{{ kafkaServerStart }}"
         KAFKA_PROPS_FILE: "{{ kafkaServerProperties }}"
         KAFKA_API_VERSIONS_BIN_FILE: "{{ kafkaApiVersionsBin }}"
-        # TODO: WHAT ARE THESE VALUES?????????????
-        # TODO: DOES THIS WORK?????
-        # ADVERTISED_DNS: "{{ deploymentServiceNames.kafka }}"
-        # TODO: prob not this ^^^ and certainly not this vvv
         ZOOKEEPER_DNS: "{{ deploymentServiceNames.zookeeper }}"
     ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_configure_deployment_environment_variables.yml
 

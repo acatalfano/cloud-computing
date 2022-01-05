@@ -1,0 +1,34 @@
+---
+# variables used in docker and k8s tasks
+images:
+- name: teamx-couchdb
+  directory: couchdb
+- name: teamx-kafka-base
+  directory: kafka
+- name: teamx-zookeeper
+  directory: zookeeper
+
+deployments:
+  couchdb:
+    appName: couchdb
+    subDirectory: couchdb
+    deploymentName: couchdb-deployment
+    externalServiceName: teamx-couchdb
+    nodePortsRegister: couchdbNodePorts
+
+  zookeeper:
+    appName: zookeeper
+    subDirectory: zookeeper
+    deploymentName: zookeeper-deployment
+    externalServiceName: teamx-zookeeper
+    nodePortsRegister: zookeeperNodePorts
+
+  kafka:
+    appName: kafka
+    subDirectory: kafka
+    deploymentName: kafka-deployment
+    externalServiceName: teamx-kafka
+    nodePortsRegister: kafkaNodePorts
+    # TODO: eventually drop this vvvv (will be user input)
+    instanceCount: 5
+...

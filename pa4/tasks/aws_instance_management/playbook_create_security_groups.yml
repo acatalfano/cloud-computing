@@ -1,0 +1,24 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano, Abhinav Jambulingam
+# Created: Fall 2021
+#
+# Create EC2 Security Groups
+#
+# REQUIRES:
+#   security_groups - a list of dict's, each with name and optionally in_rules and/or out_rules
+#   vpc_id - AWS VPC ID for EC2
+#   region - AWS region
+
+
+- name: create a security group
+  loop: "{{ security_groups }}"
+  amazon.aws.ec2_group:
+    name: "{{ item.name }}"
+    description: "{{ item.description }}"
+    vpc_id: "{{ vpc_id }}"
+    region: "{{ region }}"
+    rules: "{{ item.in_rules | default([]) | asSecGroupRules }}"
+    rules_egress: "{{ item.out_rules | default([]) | asSecGroupRules }}"
+...

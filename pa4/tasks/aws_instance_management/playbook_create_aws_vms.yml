@@ -1,0 +1,118 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano, Abhinav Jambulingam
+# Created: Fall 2021
+#
+# Create EC2 instances on AWS
+#
+
+- name: Include Group Name variables
+  ansible.builtin.include_vars: ../../variables/group_names.yml
+
+- name: Include AWS variables
+  ansible.builtin.include_vars: ../../variables/aws_vars.yml
+
+- name: Provision master/vm2 instance
+  vars:
+    name: master_vm2
+    instanceFlavor: "{{ master_instance_type }}"
+    instanceFactName: master_instance
+    secGroupList:
+    - "{{ sshSG.name }}"
+    - "{{ ftpSG.name }}"
+    - "{{ httpSG.name }}"
+    - "{{ k8s_controlSG.name }}"
+    - "{{ flannelSG.name }}"
+    - "{{ dockerPrivateRegistrySG.name }}"
+    - "{{ zookeeperSG.name }}"
+    - "{{ kafkaSG.name }}"
+    - "{{ couch_dbSG.name }}"
+    - "{{ k8sWorkerSG.name }}"
+    # TODO:vvv (do I need this????)
+    - "{{ k8s_api_egressSG.name }}"
+    - "{{ test_allSG.name }}"
+  ansible.builtin.include_tasks: ./playbook_provision_aws_template.yml
+
+- name: Provision vm3 (non-master) instance
+  vars:
+    name: worker_vm3
+    instanceFlavor: "{{ worker_instance_type }}"
+    instanceFactName: regular_instance
+    secGroupList:
+    - "{{ sshSG.name }}"
+    - "{{ ftpSG.name }}"
+    - "{{ httpSG.name }}"
+    - "{{ couch_dbSG.name }}"
+    - "{{ k8sWorkerSG.name }}"
+    - "{{ flannelSG.name }}"
+    - "{{ dockerPrivateRegistrySG.name }}"
+    # - "{{ zookeeperSG.name }}"
+    # - "{{ kafkaSG.name }}"
+    - "{{ k8s_api_egressSG.name }}"
+    - "{{ test_allSG.name }}"
+  ansible.builtin.include_tasks: ./playbook_provision_aws_template.yml
+
+- name: write AWS public IPs to Inventory
+  ansible.builtin.replace:
+    path: '~/Inventory'
+    regexp: '(?<=^\[{{ item.lineBefore }}\]\n)(\d+\.){3}\d+'
+    replace: '{{ item.publicIP }}'
+  loop:
+  - lineBefore: Remote1
+    publicIP: "{{ master_instance.public_ip_address }}"
+  - lineBefore: Remote2
+    publicIP: "{{ regular_instance.public_ip_address }}"
+
+- name: Refresh the updated Inventory File
+  ansible.builtin.meta: refresh_inventory
+
+- name: Add new instances to all_remote group
+  ansible.builtin.add_host:
+    hostname: "{{ item.public_ip_address }}"
+    groupname: "{{ allRemote }}"
+  loop: [ "{{ master_instance }}", "{{ regular_instance }}" ]
+
+- name: Add instances to appropriate vm2 and vm3 groups
+  ansible.builtin.add_host:
+    hostname: "{{ item.0.public_ip_address }}"
+    groupname: "{{ item.1 }}"
+  with_together:
+  - [ "{{ master_instance }}", "{{ regular_instance }}" ]
+  - [ "{{ kafka1ZookeeperConsumer }}", "{{ kafka2CouchDB }}" ]
+
+- name: set ips as facts
+  ansible.builtin.set_fact:
+    "{{ zookeeperIp }}": "{{ master_instance.public_ip_address }}"
+    "{{ couchdbIp }}": "{{ regular_instance.public_ip_address }}"
+    "{{ zookeeper_private_ip }}": "{{ master_instance.private_ip_address }}"
+    "{{ couchdb_private_ip }}": "{{ regular_instance.private_ip_address }}"
+
+- name: Pause for deployment
+  ansible.builtin.pause:
+    seconds: 30
+
+- name: Wait for SSH to come up
+  debugger: on_failed
+  delegate_to: "{{ item.public_dns_name }}"
+  ansible.builtin.wait_for:
+    timeout: 60
+    port: 22
+    state: started
+  loop: [ "{{ master_instance }}", "{{ regular_instance }}" ]
+
+- name: Include Local Var Names
+  ansible.builtin.include_vars: ../../variables/local_var_names.yml
+
+- name: Set IDs Fact
+  ansible.builtin.set_fact:
+    key_value: "{{ runningInstanceIds }}: [ {{ master_instance }}, {{ regular_instance }} ]"
+
+
+- name: Write EC2 IDs to local variables file
+  vars:
+    instance_ids:
+    - "{{ master_instance.instance_id }}"
+    - "{{ regular_instance.instance_id }}"
+  ansible.builtin.include_tasks: ../playbook_write_local_vars_file.yml
+...

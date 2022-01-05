@@ -1,0 +1,26 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano, Abhinav Jambulingam
+# Created: Fall 2021
+#
+# Build docker image, pushing to private registry
+#
+# REQUIRES:
+#   containersDirectory - a string
+#   registry_ip - a string
+#   images - a list of dictionaries, each containing:
+#       * name - a string (names the image and defines the URI within the private registry)
+#       * directory - a string (sub-path where dockerfile is located w/in the containers directory)
+#
+
+- name: 'Build images'
+  loop: "{{ images }}"
+  community.docker.docker_image:
+    name: '{{ item.name }}'
+    repository: "{{ registry_ip }}:5000/{{ item.name }}"
+    build:
+      path: "{{ containersDirectory }}/{{ item.directory }}"
+    source: build
+    push: yes
+...

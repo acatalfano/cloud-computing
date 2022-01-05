@@ -1,0 +1,89 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "ubuntu/focal64"
+  config.vm.boot_timeout = 600
+  config.vm.provider "virtualbox" do |vb|
+    vb.gui = true
+    vb.memory = "2048"
+    vb.customize ["modifyvm", :id, "--graphicscontroller", "vmsvga"]
+  end
+
+  PRODUCER_COUNT = 2
+  PRODUCER_HOST_BASE = "producer"
+  IP_BASE = "192.168.56.1"
+
+  (1..PRODUCER_COUNT).each do |i|
+    config.vm.define "producer#{i}" do |producer|
+
+      # copy public key contents over to each producer's authorized_keys files
+      # setup proper permissions
+      public_key = File.read("./producer_key_pair/id_rsa.pub")
+      $script = <<-SCRIPT
+        mkdir -p /home/vagrant/.ssh
+        chmod 700 /home/vagrant/.ssh
+        echo '#{public_key}' >> /home/vagrant/.ssh/authorized_keys
+        chmod 600 /home/vagrant/.ssh/authorized_keys
+        echo 'Host 192.168.*.*' >> /home/vagrant/.ssh/config
+        echo 'StrictHostKeyChecking no' >> /home/vagrant/.ssh/config
+        echo 'UserKnownHostsFile /dev/null' >> /home/vagrant/.ssh/config
+        chmod 600 /home/vagrant/.ssh/config
+      SCRIPT
+      producer.vm.provision "shell", inline: $script, privileged: false
+
+      # configure network for each producer
+      hostname = "#{PRODUCER_HOST_BASE}#{i}"
+      producer.vm.hostname = hostname
+      producer.vm.network "private_network", ip: "#{IP_BASE}#{i}"
+      producer.vm.network "forwarded_port", guest: 22, host: 2210 + i, id: "ssh"
+
+      producer.vm.provider "virtualbox" do |vb|
+        vb.customize ["modifyvm", :id, "--name", hostname]
+      end
+    end
+  end
+
+  config.vm.define "master" do |master|
+    master.vm.hostname = "master"
+    master.vm.provision "file", source: "./producer_key_pair/id_rsa", destination: "/home/vagrant/.ssh/producer_id_rsa"
+    master.vm.provision "shell", inline: "chmod 600 /home/vagrant/.ssh/producer_id_rsa", privileged: false
+
+    master.vm.provider :virtualbox do |vb|
+      vb.customize ["modifyvm", :id, "--name", "master"]
+    end
+
+    # configure hosts file so master's DNS knows about the producers
+    $script = <<-SCRIPT
+      for i in {1..#{PRODUCER_COUNT}}
+      do
+        echo "#{IP_BASE}$i #{PRODUCER_HOST_BASE}$i"
+      done |
+      sudo tee -a /etc/hosts > /dev/null
+    SCRIPT
+    master.vm.provision "shell", inline: $script, privileged: false
+    master.vm.provision "shell", path: "./bootstrap.sh"
+    master.vm.provision "file", source: "./rsa_private.pem", destination: "/home/vagrant/.ssh/id_rsa"
+
+    # copy AWS credentials
+    master.vm.provision "file", source: ".aws", destination: "/home/vagrant/.aws"
+
+    # let's also copy our ansible.cfg, MyInventory and cloud.yaml file
+    master.vm.provision "file", source: "./ansible.cfg", destination: "/home/vagrant/.ansible.cfg"
+    master.vm.provision "file", source: "./Inventory", destination: "/home/vagrant/Inventory"
+
+    # Ansible provisioner
+    master.vm.provision "ansible_local" do |ansible|
+      # TODO: drop this line later vvvv
+      # ansible.playbook = "./playbook_master_testing.yml"
+      ansible.playbook = "./playbook_master.yml"
+      # ansible.playbook = "./playbook_master_cleanup.yml"
+      ansible.install_mode = :pip
+      ansible.pip_install_cmd = "sudo apt-get install -y python3-distutils && curl https://bootstrap.pypa.io/get-pip.py | sudo python3"
+      ansible.verbose = true
+      ansible.install = true  # installs ansible (and hence python) on VM
+      ansible.limit = "all"
+      ansible.inventory_path = "/home/vagrant/Inventory"  # inventory file
+    end
+  end
+end

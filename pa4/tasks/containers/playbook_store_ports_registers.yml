@@ -1,0 +1,28 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano, Abhinav Jambulingam
+# Created: Fall 2021
+#
+# Store exposed ports for a given app
+#
+# REQUIRES:
+#   appName
+#   portsRegister
+#
+
+
+- name: Store exposed NodePorts for a given k8s app
+  ansible.builtin.shell: >-
+    kubectl get svc -l app={{ appName }} -o json
+    | jq -r '
+      [.items[].spec]
+      | map(select(.type != "ClusterIP"))
+      | map(.ports[].nodePort)[0]
+    '
+  register: portsList
+
+- name: Set portsList as a fact
+  ansible.builtin.set_fact:
+    key_value: "{{ portsRegister }}: {{ portsList.stdout }}"
+...

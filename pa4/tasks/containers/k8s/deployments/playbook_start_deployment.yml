@@ -1,0 +1,29 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano, Abhinav Jambulingam
+# Created: Fall 2021
+#
+# Deploy a k8s service and then a pod
+#
+# REQUIRES:
+#   containersDirectory
+#   subDirectory - directory within containersDirectory containing deployment file
+#   appName - name of deployed app
+#   deploymentName - name of the deployment (not the app)
+#   externalServiceName - name of the exposed service
+#
+
+- name: Launch Deployment
+  ansible.builtin.shell: "kubectl apply -f {{ containersDirectory }}/{{ subDirectory }}/deployment.yml"
+
+- name: Store Deployment Pod names in register
+  ansible.builtin.shell: "kubectl get pods -l 'app={{ appName }}' -o json | jq -r '.items[].metadata.name'"
+  register: deploymentPodNames
+
+- name: Wait for Every Container in Every Pod to be Ready
+  ansible.builtin.shell: "kubectl get pods -l 'app={{ appName }}' -o json | jq '.items[].status.containerStatuses[].ready'"
+  register: deploymentContainerStatuses
+  until: not deploymentContainerStatuses.stdout_lines | reject('match', '^true$')
+  retries: 6
+...

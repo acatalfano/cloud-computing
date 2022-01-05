@@ -1,0 +1,397 @@
+---
+# EECS 4287/5287: Principles of Cloud Computing
+# Author: Adam Catalfano, Abhinav Jambulingam
+# Created: Fall 2021
+#
+# This playbook provisions the remote Instances
+# on which a k8s cluster is run to manage a
+# Kafka/Zookeeper/CouchDB workload
+# that takes in data from external producers
+
+#############################################################################
+### Play 1: Terminate Any Existing Cloud Instances
+#
+# Run the cleanup master playbook to cleanup
+# any remote instances if they exist
+#############################################################################
+- name: 'Play 1: Terminate Any Existing Cloud Instances'
+  ansible.builtin.import_playbook: playbook_master_cleanup.yml
+
+#############################################################################
+### Play 2: Install/Configure Base Dependencies
+#
+# Install pip, configure python to point to python3,
+# Install python packages boto3, botocore, and docker
+#############################################################################
+- name: 'Play 2: Install and Configure Base Dependencies'
+  hosts: MyLocalVMs
+  remote_user: ubuntu
+
+  tasks:
+  - name: Aptitude Upgrade
+    ansible.builtin.include_tasks: tasks/playbook_aptitude_upgrade.yml
+  - name: Configure Python Versions
+    ansible.builtin.include_tasks: tasks/playbook_configure_python.yml
+  - name: Configure File Modes for SSH, etc.
+    ansible.builtin.include_tasks: tasks/playbook_configure_file_modes.yml
+
+  - name: Install boto3, botocore, and docker python packages
+    ansible.builtin.pip:
+      name:
+      - boto
+      - boto3
+      - botocore
+      - docker
+
+#############################################################################
+### Play 3: Create EC2 Security Groups
+#
+# Create Security Groups on AWS
+#############################################################################
+- name: 'Play 3: Create EC2 Security Groups'
+  hosts: MyLocalVMs
+  remote_user: ubuntu
+  strategy: debug
+  vars_files:
+  - variables/aws_vars.yml
+
+  tasks:
+  - name: Build AWS EC2 Security Groups
+    ansible.builtin.include_tasks: tasks/aws_instance_management/playbook_create_security_groups.yml
+
+#############################################################################
+### Play 4: Create AWS EC2 Cloud Instances
+#
+# Provision instances on the cloud
+#############################################################################
+- name: 'Play 4: Create AWS EC2 Instances'
+  hosts: MyLocalVMs
+  remote_user: ubuntu
+  vars_files:
+  - variables/path_names.yml
+  vars:
+    zookeeperIp: vm2Ip
+    couchdbIp: vm3Ip
+    zookeeper_private_ip: vm2_private_ip
+    couchdb_private_ip: vm3_private_ip
+
+  tasks:
+  - name: install dos2unix
+    become: yes
+    ansible.builtin.apt:
+      name: dos2unix
+
+  - name:  fix line endings on Inventory file
+    ansible.builtin.shell: dos2unix ~/Inventory
+
+  - name: provision AWS instances
+    ansible.builtin.include_tasks: tasks/aws_instance_management/playbook_create_aws_vms.yml
+
+  # - name: Configure image server IP address
+  #   vars:
+  #     containerSubDirectories:
+  #     # TODO: don't forget to uncomment these later!!!!
+  #     # - consumer
+  #     - couchdb
+  #     - zookeeper
+  #     # - kafka
+  #     # jobFiles: [] #"{{ containerSubDirectories | product(['/job.yml']) | map('join') | list }}"
+  #     # deploymentFiles: "{{ containerSubDirectories | product(['/deployment.yml']) | map('join') | list }}"
+  #     files: "{{ containerSubDirectories | product(['/deployment.yml']) | map('join') | list }}"
+  #   ansible.builtin.replace:
+  #     path: "{{ localContainersDirectory }}/{{ item }}"
+  #     regexp: '(?<=image: )(?:\d+\.)+\d+(?=:5000)'
+  #     replace: "{{ inventory_hostname }}"
+  #   # loop: "{{ jobFiles + deploymentFiles }}"
+  #   loop: "{{ files }}"
+
+#############################################################################
+### Play 5: Install Docker + K8S and setup kubectl tab-completion
+#
+# Install K8S, Docker, and Dependencies on all remotes
+#############################################################################
+- name: 'Play 5: Install Docker + K8S and setup kubectl tab-completion'
+  hosts: "{{ allRemote }}"
+  remote_user: ubuntu
+  vars_files:
+  - variables/group_names.yml
+  tasks:
+  - name: Install Docker and K8S
+    ansible.builtin.include_tasks: tasks/containers/playbook_install_docker_and_k8s.yml
+
+  - name: Add master as insecure registry
+    vars:
+      k8sMasterIp: "{{ groups[k8sMaster][0] }}"
+    ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_add_insecure_registries_config.yml
+
+#############################################################################
+### Play 6: Configure and Launch K8S Master
+#
+#  Launch private registry, copy over containers files,
+#        update the registry IP address references,
+#        then Configure and Start K8S Master
+#############################################################################
+- name: 'Play 6: Configure and Launch K8S Master'
+  hosts: "{{ k8sMaster }}"
+  remote_user: ubuntu
+  vars_files:
+  - variables/group_names.yml
+  - variables/path_names.yml
+  - variables/credentials/couchdb_admin.yml
+  - variables/container_vars.yml
+  strategy: debug
+
+  tasks:
+  - name: Set Hostname Aliases on K8S Master
+    become: yes
+    vars:
+      lines:
+      - "{{ inventory_hostname }} kubemaster kubeworker1"
+      - "{{ hostvars['127.0.0.1'].vm2_private_ip }} kubemaster kubeworker1"
+    ansible.builtin.lineinfile:
+      path: /etc/hosts
+      line: "{{ lines | join('\n') }}"
+
+  - name: Copy over container files
+    ansible.builtin.copy:
+      src: file_srcs/containers/
+      dest: "{{ containersDirectory }}"
+
+  - name: Configure image server IP address
+    vars:
+      containerSubDirectories:
+      # TODO: don't forget to uncomment these later!!!!
+      # - consumer
+      - couchdb
+      - zookeeper
+      - kafka
+      # jobFiles: [] #"{{ containerSubDirectories | product(['/job.yml']) | map('join') | list }}"
+      # deploymentFiles: "{{ containerSubDirectories | product(['/deployment.yml']) | map('join') | list }}"
+      # '/job.yml',
+      files: "{{ containerSubDirectories | product(['/deployment.yml']) | map('join') | list }}"
+    ansible.builtin.replace:
+      path: "{{ containersDirectory }}/{{ item }}"
+      regexp: '(?<=image: )(?:\d+\.)+\d+(?=:5000)'
+      replace: "{{ inventory_hostname }}"
+    # loop: "{{ jobFiles + deploymentFiles }}"
+    loop: "{{ files }}"
+
+  - name: install dos2unix
+    become: yes
+    ansible.builtin.apt:
+      name: dos2unix
+
+  - name: fix dos line endings
+    ansible.builtin.shell: "dos2unix {{ item }}/deployment.yml"
+    loop:
+    - "{{ zookeeperDeploymentDirectory }}"
+    - "{{ kafkaDeploymentDirectory }}"
+
+  - name: Configure Zookeeper Deployment Environment Variables
+    vars:
+      targetDirectory: "{{ zookeeperDeploymentDirectory }}"
+      envMap:
+        ZOOKEEPER_BIN_FILE: "{{ zookeeperServerStart }}"
+        ZOOKEEPER_PROPS_FILE: "{{ zookeeperProperties }}"
+    ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_configure_deployment_environment_variables.yml
+
+  - name: Set the service name for zookeeper
+    ansible.builtin.replace:
+      before: apps/v1
+      after: 'metadata:'
+      path: "{{ containersDirectory }}/couchdb/deployment.yml"
+      regexp: '(?<=name: ).*'
+      replace: "{{ deployments.zookeeper.externalServiceName }}"
+
+  - name: Set CouchDB AdmUser in deployment.yml
+    ansible.builtin.replace:
+      path: "{{ containersDirectory }}/couchdb/deployment.yml"
+      regexp: '(?<=value: )admUser$'
+      replace: "{{ adminUsername }}"
+
+  - name: Set CouchDB AdmPassword in deployment.yml
+    ansible.builtin.replace:
+      path: "{{ containersDirectory }}/couchdb/deployment.yml"
+      regexp: '(?<=value: )admPassword$'
+      replace: "{{ adminPassword }}"
+
+  - name: Install Pip for Python3
+    become: yes
+    ansible.builtin.apt:
+      name: python3-pip
+
+  - name: Install docker, docker-compose, and kubernetes python packages and dependencies
+    become: yes
+    ansible.builtin.pip:
+      extra_args: --force-reinstall
+      name:
+      - docker
+      - docker-compose
+      - kubernetes
+      - pyyaml>=3.10,<6
+      - websocket-client>=0.32.0,<1
+
+  - name: Install docker compose
+    ansible.builtin.include_tasks: tasks/containers/docker/playbook_install_docker_compose.yml
+
+  - name: Make registry directory
+    ansible.builtin.file:
+      state: directory
+      path: ~/registry
+
+  - name: Copy over docker-compose file
+    ansible.builtin.copy:
+      dest: ~/registry/docker-compose.yml
+      src: ./file_srcs/registry/docker-compose.yml
+
+  - name: Compose the registry
+    community.docker.docker_compose:
+      project_src: ~/registry/
+
+  - name: Start and Prepare K8S Master
+    ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_start_and_prepare_k8s_master.yml
+
+  - name: Store join command to register
+    ansible.builtin.shell: kubeadm token create --print-join-command
+    register: joinCommandOutput
+
+  - name: Store join command as a fact
+    ansible.builtin.set_fact:
+      joinCommand: "{{ joinCommandOutput.stdout }}"
+
+#############################################################################
+### Play 7: Configure K8S worker and join cluster
+#
+# Configure worker and join K8S cluster
+#############################################################################
+- name: 'Play 7: Configure K8S worker and join K8S cluster'
+  hosts: "{{ k8sWorker }}"
+  remote_user: ubuntu
+  vars_files:
+  - variables/group_names.yml
+  strategy: debug
+  tasks:
+  - name: Set Hostname Aliases on K8S Worker
+    become: yes
+    vars:
+      lines:
+      - "{{ inventory_hostname }} kubeworker2"
+      - "{{ hostvars['127.0.0.1'].vm3_private_ip }} kubeworker2"
+    ansible.builtin.lineinfile:
+      path: /etc/hosts
+      line: "{{ lines | join('\n') }}"
+
+  - name: Join K8S Cluster
+    vars:
+      k8sMasterIp: "{{ groups[k8sMaster][0] }}"
+    become: yes
+    ansible.builtin.shell: "{{ hostvars[k8sMasterIp].joinCommand }} --node-name kubeworker2"
+
+#############################################################################
+### Play 8: Untaint master, build docker images, and deploy apps
+#
+# Untaint K8S master to be a worker, build docker images,
+#############################################################################
+- name: 'Play 8: Untaint master, build docker images, and deploy apps'
+  hosts: "{{ k8sMaster }}"
+  remote_user: ubuntu
+  vars_files:
+  - variables/group_names.yml
+  - variables/path_names.yml
+  - variables/container_vars.yml
+  - variables/path_names.yml
+
+  tasks:
+  - name: Untaint K8S Master
+    ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_untaint_master.yml
+
+  - name: Build Docker Images
+    vars:
+      registry_ip: "{{ inventory_hostname }}"
+    ansible.builtin.include_tasks: tasks/containers/docker/playbook_build_docker_images.yml
+
+  - name: Deploy Couchdb and Zookeeper k8s Apps
+    vars:
+      appName: "{{ item.appName }}"
+      subDirectory: "{{ item.subDirectory }}"
+      deploymentName: "{{ item.deploymentName }}"
+      externalServiceName: "{{ item.externalServiceName }}"
+    ansible.builtin.include_tasks: tasks/containers/k8s/deployments/playbook_start_deployment.yml
+    loop:
+    - "{{ deployments.couchdb }}"
+    - "{{ deployments.zookeeper }}"
+
+
+#############################################################################
+### Play 9: Configure IP addresses and Ports on Consumers and Producers
+#
+# Untaint K8S master to be a worker, build docker images,
+#############################################################################
+- name: 'Play 9: Configure IP addresses and Ports on Consumers and Producers'
+  hosts: "{{ k8sMaster }}"
+  remote_user: ubuntu
+  vars_files:
+  - variables/group_names.yml
+  - variables/container_vars.yml
+  - variables/path_names.yml
+
+  tasks:
+  - name: Store exposed NodePorts for Zookeeper and Couchdb containers
+    # ansible.builtin.shell: "
+    #   kubectl get svc -l app={{ item.app }} -o json | jq '
+    #     [.items[].spec] |
+    #     map(select(.type != \"ClusterIP\")) |
+    #     map(
+    #       .ports |
+    #       map(.nodePort)
+    #     ) |
+    #     flatten
+    #   '
+    #   "
+    # register: "{{ item.portsRegister }}"
+    vars:
+      appName: "{{ item.app }}"
+      portsRegister: "{{ item.portsRegister }}"
+    ansible.builtin.include_tasks: './tasks/containers/playbook_store_ports_registers.yml'
+    loop: "{{ deployments | json_query('*.{app: appName, portsRegister: nodePortsRegister}[?app != `kafka`]') }}"
+
+  - name: examine ansible facts and pray to God!
+    debug:
+      var: ansible_facts
+
+  # TODO: yeah, this is pretty explicit, but I was getting pretty pissed the fuck off and had to push....
+  #       definitely be sure to strip this play entirely by next push.....FUCK WHY ISN'T IT WORKING???????? FUCK!
+  - name: check if I fucked the pooch's brains out......
+    ansible.builtin.debug:
+      var: item.value
+    loop:
+    - "{{ couchdbNodePorts }}"
+    - "{{ zookeeperNodePorts }}"
+    # "{{ { 'couchdb': couchdb-nodeports, 'zookeeper': zookeeper-nodeports } | dict2items }}"
+
+#   - name: Configure Kafka Deployment Environment Variables
+#     vars:
+#       targetDirectory: "{{ kafkaDeploymentDirectory }}"
+#       envMap:
+#         KAFKA_BIN_FILE: "{{ kafkaServerStart }}"
+#         KAFKA_PROPS_FILE: "{{ kafkaServerProperties }}"
+#         KAFKA_API_VERSIONS_BIN_FILE: "{{ kafkaApiVersionsBin }}"
+#         ZOOKEEPER_DNS: "{{ deployments.zookeeper.externalServiceName }}"
+#     ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_configure_deployment_environment_variables.yml
+
+#   - name: Deploy the kafka instances
+#     vars:
+#       instanceId: "{{ item }}"
+#     loop: "{{ range(deployments.kafka.instanceCount) }}"
+#     ansible.builtin.include_tasks: ./tasks/containers/k8s/deployments/playbook_deploy_kafka.yml
+
+# # TODO: still need to run consumer
+
+# #############################################################################
+# ### Play 12: Provision Producers and run script
+# #
+# # Provision VM1.1 and VM1.2 and execute producer.py on each
+# #############################################################################
+# # - name: 'Play 12: Provision Producers and run script'
+# #   ansible.builtin.import_playbook: playbook_master_run_producers.yml
+# ...

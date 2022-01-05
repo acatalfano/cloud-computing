@@ -1,0 +1,14 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano, Abhinav Jambulingam
+# Created: Fall 2021
+#
+# Configures file mode for the ssh key
+#
+
+- name: Change permissions for id_rsa
+  ansible.builtin.file:
+    path: ~/.ssh/id_rsa
+    mode: 0600
+...

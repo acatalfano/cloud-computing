@@ -1,0 +1,33 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano, Abhinav Jambulingam
+# Created: Fall 2021
+#
+# Untaint K8S Master and add it to its own cluster as a worker
+#
+
+- name: Install jq
+  become: yes
+  ansible.builtin.apt: name=jq
+
+- name: Wait for node to be ready
+  ansible.builtin.shell: kubectl get nodes -o json | jq -r '.items[] | .spec.taints[]? | .key'
+  register: taints
+  until: '"node.kubernetes.io/not-ready" not in taints.stdout_lines'
+  retries: 6
+
+- name: Store Taint Key in Register
+  ansible.builtin.shell: kubectl get nodes -o json | jq -r '.items[].spec.taints[0].key'
+  register: key
+
+- name: Store Taint Effect in Register
+  ansible.builtin.shell: kubectl get nodes -o json | jq -r '.items[].spec.taints[0].effect'
+  register: effect
+
+- name: Untaint the node
+  vars:
+    key_item: "{{ key.stdout_lines | reject('equalto', 'null') | first }}"
+    effect_item: "{{ effect.stdout_lines | reject('equalto', 'null') | first }}"
+  ansible.builtin.shell: "kubectl taint nodes kubemaster {{ key_item }}:{{ effect_item }}-"
+...
