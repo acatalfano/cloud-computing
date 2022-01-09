@@ -40,6 +40,8 @@
   remote_user: ubuntu
   vars_files:
   - variables/container_vars.yml
+  - variables/path_names.yml
+  - variables/group_names.yml
   vars:
     num: 4
     fileTarget: /vagrant/file_srcs/containers/zookeeper/deployment.yml
@@ -89,21 +91,67 @@
         resourceVersion: ""
         selfLink: ""
 
-
-
   tasks:
+  - name: try parsing string as a list
+    vars:
+      strList: "[\n  32591,\n  30527,\n  30317,\n  32737,\n  31863\n]"
+      cleanStr: "{{ strList | regex_replace('[(\\n)(\\s*)\\[\\]]', '') }}"
+    debug:
+      msg: "{{ cleanStr.split(',') }}"
+  ################################################################################################################
+  # - name: Store exposed NodePorts for Zookeeper and Couchdb k8s apps
+  #   # ansible.builtin.shell: "
+  #   #   kubectl get svc -l app={{ item.app }} -o json | jq '
+  #   #     [.items[].spec] |
+  #   #     map(select(.type != \"ClusterIP\")) |
+  #   #     map(
+  #   #       .ports |
+  #   #       map(.nodePort)
+  #   #     ) |
+  #   #     flatten
+  #   #   '
+  #   #   "
+  #   # register: "{{ item.portsRegister }}"
+  #   vars:
+  #     appName: "{{ item.app }}"
+  #     portsRegister: "{{ item.portsRegister }}"
+  #   ansible.builtin.include_tasks: './tasks/containers/playbook_store_ports_registers.yml'
+  #   loop: "{{ deployments | json_query('*.{app: appName, portsRegister: nodePortsRegister}[?app != `kafka`]') }}"
+
+  # - name: Configure Kafka Deployment Environment Variables
+  #   vars:
+  #     targetDirectory: "{{ kafkaDeploymentDirectory }}"
+  #     envMap:
+  #       KAFKA_BIN_FILE: "{{ kafkaServerStart }}"
+  #       KAFKA_PROPS_FILE: "{{ kafkaServerProperties }}"
+  #       KAFKA_API_VERSIONS_BIN_FILE: "{{ kafkaApiVersionsBin }}"
+  #       ZOOKEEPER_DNS: "{{ deployments.zookeeper.externalServiceName }}"
+  #   ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_configure_deployment_environment_variables.yml
+
+  # - name: Deploy the kafka instances
+  #   vars:
+  #     instanceId: "{{ item }}"
+  #   loop: "{{ range(deployments.kafka.instanceCount) }}"
+  #   ansible.builtin.include_tasks: ./tasks/containers/k8s/deployments/playbook_deploy_kafka.yml
+
+  # - name: Stored exposed NodePorts for Kafka k8s apps
+  #   vars:
+  #     appName: "{{ deployments.kafka.appName }}"
+  #     portsRegister: "{{ deployments.kafka.nodePortsRegister }}"
+  #   ansible.builtin.include_tasks: ./tasks/containers/playbook_store_ports_registers.yml
+  ################################################################################################################
   # - name: x
   #   debug:
   #     msg: "{{ deployments | json_query('*.{app: appName, portsRegister: nodePortsRegister}[?app != `kafka`]') }}"
   # - name: x list
   #   debug:
   #     msg: "{{ deployments | json_query('*.{app: appName, portsRegister: nodePortsRegister}[?app != `kafka`]') | list }}"
-  - name: test the NodePorts store thing
-    vars:
-      appName: "{{ item.app }}"
-      portsRegister: "{{ item.portsRegister }}"
-    ansible.builtin.include_tasks: './tasks/containers/playbook_store_ports_registers.yml'
-    loop: "{{ deployments | json_query('*.{app: appName, portsRegister: nodePortsRegister}[?app != `kafka`]') }}"
+  # - name: test the NodePorts store thing
+  #   vars:
+  #     appName: "{{ item.app }}"
+  #     portsRegister: "{{ item.portsRegister }}"
+  #   ansible.builtin.include_tasks: './tasks/containers/playbook_store_ports_registers.yml'
+  #   loop: "{{ deployments | json_query('*.{app: appName, portsRegister: nodePortsRegister}[?app != `kafka`]') }}"
   ################################################################################################################
   # - name: try some jmespath syntax
   #   debug:

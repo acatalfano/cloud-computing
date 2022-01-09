@@ -336,7 +336,7 @@
   - variables/path_names.yml
 
   tasks:
-  - name: Store exposed NodePorts for Zookeeper and Couchdb containers
+  - name: Store exposed NodePorts for Zookeeper and Couchdb k8s apps
     # ansible.builtin.shell: "
     #   kubectl get svc -l app={{ item.app }} -o json | jq '
     #     [.items[].spec] |
@@ -355,35 +355,27 @@
     ansible.builtin.include_tasks: './tasks/containers/playbook_store_ports_registers.yml'
     loop: "{{ deployments | json_query('*.{app: appName, portsRegister: nodePortsRegister}[?app != `kafka`]') }}"
 
-  - name: examine ansible facts and pray to God!
-    debug:
-      var: ansible_facts
+  - name: Configure Kafka Deployment Environment Variables
+    vars:
+      targetDirectory: "{{ kafkaDeploymentDirectory }}"
+      envMap:
+        KAFKA_BIN_FILE: "{{ kafkaServerStart }}"
+        KAFKA_PROPS_FILE: "{{ kafkaServerProperties }}"
+        KAFKA_API_VERSIONS_BIN_FILE: "{{ kafkaApiVersionsBin }}"
+        ZOOKEEPER_DNS: "{{ deployments.zookeeper.externalServiceName }}"
+    ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_configure_deployment_environment_variables.yml
 
-  # TODO: yeah, this is pretty explicit, but I was getting pretty pissed the fuck off and had to push....
-  #       definitely be sure to strip this play entirely by next push.....FUCK WHY ISN'T IT WORKING???????? FUCK!
-  - name: check if I fucked the pooch's brains out......
-    ansible.builtin.debug:
-      var: item.value
-    loop:
-    - "{{ couchdbNodePorts }}"
-    - "{{ zookeeperNodePorts }}"
-    # "{{ { 'couchdb': couchdb-nodeports, 'zookeeper': zookeeper-nodeports } | dict2items }}"
+  - name: Deploy the kafka instances
+    vars:
+      instanceId: "{{ item }}"
+    loop: "{{ range(deployments.kafka.instanceCount) }}"
+    ansible.builtin.include_tasks: ./tasks/containers/k8s/deployments/playbook_deploy_kafka.yml
 
-#   - name: Configure Kafka Deployment Environment Variables
-#     vars:
-#       targetDirectory: "{{ kafkaDeploymentDirectory }}"
-#       envMap:
-#         KAFKA_BIN_FILE: "{{ kafkaServerStart }}"
-#         KAFKA_PROPS_FILE: "{{ kafkaServerProperties }}"
-#         KAFKA_API_VERSIONS_BIN_FILE: "{{ kafkaApiVersionsBin }}"
-#         ZOOKEEPER_DNS: "{{ deployments.zookeeper.externalServiceName }}"
-#     ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_configure_deployment_environment_variables.yml
-
-#   - name: Deploy the kafka instances
-#     vars:
-#       instanceId: "{{ item }}"
-#     loop: "{{ range(deployments.kafka.instanceCount) }}"
-#     ansible.builtin.include_tasks: ./tasks/containers/k8s/deployments/playbook_deploy_kafka.yml
+  - name: Stored exposed NodePorts for Kafka k8s apps
+    vars:
+      appName: "{{ deployments.kafka.appName }}"
+      portsRegister: "{{ deployments.kafka.nodePortsRegister }}"
+    ansible.builtin.include_tasks: ./tasks/containers/playbook_store_ports_registers.yml
 
 # # TODO: still need to run consumer
 
