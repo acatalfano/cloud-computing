@@ -25,7 +25,7 @@
 #############################################################################
 - name: 'Play 2: Install and Configure Base Dependencies'
   hosts: MyLocalVMs
-  remote_user: ubuntu
+  # remote_user: ubuntu
 
   tasks:
   - name: Aptitude Upgrade
@@ -50,7 +50,7 @@
 #############################################################################
 - name: 'Play 3: Create EC2 Security Groups'
   hosts: MyLocalVMs
-  remote_user: ubuntu
+  # remote_user: ubuntu
   strategy: debug
   vars_files:
   - variables/aws_vars.yml
@@ -81,7 +81,7 @@
     ansible.builtin.apt:
       name: dos2unix
 
-  - name:  fix line endings on Inventory file
+  - name: fix line endings on Inventory file
     ansible.builtin.shell: dos2unix ~/Inventory
 
   - name: provision AWS instances
@@ -106,41 +106,58 @@
   #   loop: "{{ files }}"
 
 #############################################################################
-### Play 5: Install Docker + K8S and setup kubectl tab-completion
+### Play 5: On Remotes, install Docker + K8S and setup kubectl tab-completion
 #
 # Install K8S, Docker, and Dependencies on all remotes
 #############################################################################
-- name: 'Play 5: Install Docker + K8S and setup kubectl tab-completion'
-  hosts: "{{ allRemote }}"
-  remote_user: ubuntu
+- name: 'Play 5: On Remotes, install Docker + K8S and setup kubectl tab-completion'
+  hosts: "{{ allRemoteAndProducers }}"
   vars_files:
   - variables/group_names.yml
   tasks:
+  - name: Check if installed
+    ansible.builtin.stat:
+      path: ~/.kube
+    register: packagesInstalled
+
   - name: Install Docker and K8S
     ansible.builtin.include_tasks: tasks/containers/playbook_install_docker_and_k8s.yml
+    when: not packagesInstalled.stat.exists
 
   - name: Add master as insecure registry
     vars:
-      k8sMasterIp: "{{ groups[k8sMaster][0] }}"
+      k8sRemoteMasterIp: "{{ groups[k8sRemoteMaster][0] }}"
     ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_add_insecure_registries_config.yml
+    when: not packagesInstalled.stat.exists
 
 #############################################################################
-### Play 6: Configure and Launch K8S Master
+### Play 5B: On Producers, install Docker + K8S and setup kubectl tab-completion
 #
-#  Launch private registry, copy over containers files,
-#        update the registry IP address references,
-#        then Configure and Start K8S Master
+# Install K8S, Docker, and Dependencies on all remotes
 #############################################################################
-- name: 'Play 6: Configure and Launch K8S Master'
-  hosts: "{{ k8sMaster }}"
-  remote_user: ubuntu
+# - name: 'Play 5B: On Producers, install Docker + K8S and setup kubectl tab-completion'
+#   hosts: "{{ allRemoteAndProducers }}"
+#   remote_user: vagrant
+#   vars_files:
+#   - variables/group_names.yml
+#   tasks:
+#   - name: Install Docker and K8S
+#     ansible.builtin.include_tasks: tasks/containers/playbook_install_docker_and_k8s.yml
+
+#   - name: Add master as insecure registry
+#     vars:
+#       k8sRemoteMasterIp: "{{ groups[k8sRemoteMaster][0] }}"
+#     ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_add_insecure_registries_config.yml
+
+#############################################################################
+### Play 6A: Configure host aliases on remote k8s master
+#
+# Modify /etc/hosts files on both clusters' master nodes
+#############################################################################
+- name: 'Play 6A: Configure host aliases on remote k8s master'
+  hosts: "{{ k8sRemoteMaster }}"
   vars_files:
   - variables/group_names.yml
-  - variables/path_names.yml
-  - variables/credentials/couchdb_admin.yml
-  - variables/container_vars.yml
-  strategy: debug
-
   tasks:
   - name: Set Hostname Aliases on K8S Master
     become: yes
@@ -151,7 +168,56 @@
     ansible.builtin.lineinfile:
       path: /etc/hosts
       line: "{{ lines | join('\n') }}"
+#   - name: Add master as insecure registry
+#     vars:
+#       k8sRemoteMasterIp: "{{ groups[k8sRemoteMaster][0] }}"
+#     ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_add_insecure_registries_config.yml
 
+#############################################################################
+### Play 6B: Configure host aliases on provider k8s master
+#
+# Modify /etc/hosts files on both clusters' master nodes
+#############################################################################
+- name: 'Play 6B: Configure host aliases on provider k8s master'
+  hosts: "{{ k8sProducerMaster }}"
+  vars_files:
+  - variables/group_names.yml
+  tasks:
+  - name: Add Hostname aliases to vagrant port-forward networking
+    become: yes
+    ansible.builtin.replace:
+      path: /etc/hosts
+      regexp: (?<=producer1)
+      replace: ' kubemaster kubeworker1'
+
+  - name: Set Hostname Aliases on K8S Master
+    become: yes
+    ansible.builtin.lineinfile:
+      path: /etc/hosts
+      line: "{{ inventory_hostname }} kubemaster kubeworker1"
+#   - name: Add master as insecure registry
+#     vars:
+#       k8sRemoteMasterIp: "{{ groups[k8sRemoteMaster][0] }}"
+#     ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_add_insecure_registries_config.yml
+
+#############################################################################
+### Play 7: Configure and Launch K8S Master
+#
+#  Launch private registry, copy over containers files,
+#        update the registry IP address references,
+#        then Configure and Start K8S Master
+#############################################################################
+- name: 'Play 7: Configure and Launch K8S Master'
+  hosts: "{{ k8sRemoteMaster }}"
+  remote_user: ubuntu
+  vars_files:
+  - variables/group_names.yml
+  - variables/path_names.yml
+  - variables/credentials/couchdb_admin.yml
+  - variables/container_vars.yml
+  strategy: debug
+
+  tasks:
   - name: Copy over container files
     ansible.builtin.copy:
       src: file_srcs/containers/
@@ -165,9 +231,6 @@
       - couchdb
       - zookeeper
       - kafka
-      # jobFiles: [] #"{{ containerSubDirectories | product(['/job.yml']) | map('join') | list }}"
-      # deploymentFiles: "{{ containerSubDirectories | product(['/deployment.yml']) | map('join') | list }}"
-      # '/job.yml',
       files: "{{ containerSubDirectories | product(['/deployment.yml']) | map('join') | list }}"
     ansible.builtin.replace:
       path: "{{ containersDirectory }}/{{ item }}"
@@ -248,53 +311,176 @@
     community.docker.docker_compose:
       project_src: ~/registry/
 
-  - name: Start and Prepare K8S Master
-    ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_start_and_prepare_k8s_master.yml
+  # - name: Start and Prepare K8S Master
+  #   ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_start_and_prepare_k8s_master.yml
+  # TODO maybe bring this one ^^^ back...
 
-  - name: Store join command to register
-    ansible.builtin.shell: kubeadm token create --print-join-command
-    register: joinCommandOutput
+  # - name: Store join command to register
+  #   ansible.builtin.shell: kubeadm token create --print-join-command
+  #   register: joinCommandOutput
 
-  - name: Store join command as a fact
-    ansible.builtin.set_fact:
-      joinCommand: "{{ joinCommandOutput.stdout }}"
+  # - name: Store join command as a fact
+  #   ansible.builtin.set_fact:
+  #     joinCommand: "{{ joinCommandOutput.stdout }}"
 
 #############################################################################
-### Play 7: Configure K8S worker and join cluster
+### Play 8: Start k8s Cluster for both Producer and remote clusters
+#
+# Start Master and store join command as a fact
+#############################################################################
+- name: 'Play 8: Start k8s Cluster for both Producer and remote clusters'
+  hosts: "{{ k8sRemoteAndProducerMasters }}"
+  vars_files:
+  - variables/group_names.yml
+  tasks:
+  - name: Start k8s cluster
+    ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_start_and_prepare_k8s_master.yml
+#
+  # - name: Store join command as a fact
+  #   ansible.builtin.set_fact:
+  #     joinCommand: "{{ joinCommandOutput.stdout }}"
+
+  # - name: debug
+  #   ansible.builtin.set_fact:
+  #     # key_value: "{{ jc }}-{{ lookup('vars', hostsGroupname) }}: {{ joinCommandOutput.stdout }}"
+  #     key_value: "joincommand: {{ joinCommandOutput.stdout }}"
+
+
+#############################################################################
+### Play 9: Store k8s Join Command for both Producer and remote clusters
+#
+# 2-part play, storing join command as a fact
+#           for producer cluster and aws cluster
+#############################################################################
+- name: 'Play 9A: Store k8s Join Command for remote cluster'
+  hosts: "{{ k8sRemoteMaster }}"
+  vars_files:
+  - variables/group_names.yml
+  tasks:
+  - name: Start k8s cluster
+    ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_store_join_command.yml
+
+- name: 'Play 9B: Store k8s Join Command for Producer cluster'
+  hosts: "{{ k8sProducerMaster }}"
+  vars_files:
+  - variables/group_names.yml
+  tasks:
+  - name: Start k8s cluster
+    ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_store_join_command.yml
+
+# TODO TODO TODO TODO: problem with the join command or something? (storing/reading)
+#                   investigate and/or just go full docker!!!!!!
+
+# #############################################################################
+# ### Play 8: Start k8s Cluster for both Producer and remote clusters
+# #
+# # Start Master and store join command as a fact
+# #############################################################################
+# - name: 'Play 8A: Start k8s Cluster for remote cluster'
+#   hosts: "{{ k8sRemoteMaster }}" #"{{ k8sProducerMaster }}"
+#   remote_user: ubuntu
+#   vars_files:
+#   - variables/group_names.yml
+#   tasks:
+#   - name: start and prepare remote k8s master
+#     ansible.builtin.include_tasks:
+# #   vars:
+# #     hostsGroupname: k8sRemoteMaster #vm2 #"{{ k8sRemoteMaster }}"
+# #     username: ubuntu
+# #     jc: jc1
+# #   #strategy: debug
+# #   ansible.builtin.import_playbook: playbook_start_and_prepare_k8s_master.yml
+
+# - name: 'Play 8B: Start k8s Cluster for Producer cluster'
+#   hosts: "{{ k8sProducerMaster }}" #"{{ k8sProducerMaster }}"
+#   remote_user: vagrant
+#   vars_files:
+#   - variables/group_names.yml
+#   tasks:
+#   - name: start and prepare remote k8s master
+#   vars:
+#     hostsGroupname: Producer1 #k8sProducerMaster #Producer1 #"{{ k8sProducerMaster }}"
+#     username: vagrant
+#     jc: jc2
+#   #strategy: debug
+#   ansible.builtin.import_playbook: playbook_start_and_prepare_k8s_master.yml
+
+
+#############################################################################
+### Play 10: Configure K8S worker and join cluster
 #
 # Configure worker and join K8S cluster
 #############################################################################
-- name: 'Play 7: Configure K8S worker and join K8S cluster'
+- name: 'Play 10: Configure K8S worker and join K8S cluster'
   hosts: "{{ k8sWorker }}"
-  remote_user: ubuntu
+  # remote_user: ubuntu
   vars_files:
   - variables/group_names.yml
   strategy: debug
   tasks:
-  - name: Set Hostname Aliases on K8S Worker
-    become: yes
+  - name: configure kubeworker and join remote cluster
     vars:
-      lines:
-      - "{{ inventory_hostname }} kubeworker2"
-      - "{{ hostvars['127.0.0.1'].vm3_private_ip }} kubeworker2"
-    ansible.builtin.lineinfile:
-      path: /etc/hosts
-      line: "{{ lines | join('\n') }}"
+      # publicIP: "{{ inventory_hostname }}"
+      privateIP: "{{ hostvars['127.0.0.1'].vm3_private_ip }}"
+      remoteMasterIP: "{{ groups[k8sRemoteMaster][0] }}"
+    ansible.builtin.include_tasks: ./tasks/containers/k8s/setup/playbook_configure_worker_and_join_cluster.yml
+  # - name: Set Hostname Aliases on K8S Worker
+  #   become: yes
+  #   vars:
+  #     lines:
+  #     - "{{ inventory_hostname }} kubeworker2"
+  #     - "{{ hostvars['127.0.0.1'].vm3_private_ip }} kubeworker2"
+  #   ansible.builtin.lineinfile:
+  #     path: /etc/hosts
+  #     line: "{{ lines | join('\n') }}"
 
-  - name: Join K8S Cluster
-    vars:
-      k8sMasterIp: "{{ groups[k8sMaster][0] }}"
-    become: yes
-    ansible.builtin.shell: "{{ hostvars[k8sMasterIp].joinCommand }} --node-name kubeworker2"
+  # - name: Join K8S Cluster
+  #   vars:
+  #     k8sRemoteMasterIp: "{{ groups[k8sRemoteMaster][0] }}"
+  #   become: yes
+  #   ansible.builtin.shell: "{{ hostvars[k8sRemoteMasterIp].joinCommand }} --node-name kubeworker2"
 
 #############################################################################
-### Play 8: Untaint master, build docker images, and deploy apps
+### Play 11: Configure Producer K8S worker and join cluster
 #
-# Untaint K8S master to be a worker, build docker images,
+# Configure worker and join K8S cluster
 #############################################################################
-- name: 'Play 8: Untaint master, build docker images, and deploy apps'
-  hosts: "{{ k8sMaster }}"
-  remote_user: ubuntu
+- name: 'Play 11: Configure Producer K8S worker and join cluster'
+  hosts: "{{ k8sProducerWorker }}"
+  # remote_user: ubuntu
+  vars_files:
+  - variables/group_names.yml
+  strategy: debug
+  tasks:
+  - name: configure kubeworker and join producer cluster
+    vars:
+      # publicIP: "{{ inventory_hostname }}"
+      remoteMasterIP: "{{ groups[k8sProducerMaster][0] }}"
+    ansible.builtin.include_tasks: ./tasks/containers/k8s/setup/playbook_configure_worker_and_join_cluster.yml
+
+#############################################################################
+### Play 12: Untaint producer master
+#
+# Untaint K8S master to be a worker
+#############################################################################
+- name: 'Play 12: Untaint producer master'
+  hosts: "{{ k8sRemoteAndProducerMasters }}"
+  # remote_user: ubuntu
+  vars_files:
+  - variables/group_names.yml
+
+  tasks:
+  - name: Untaint Master
+    ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_untaint_master.yml
+
+#############################################################################
+### Play 13: Build docker images, and deploy apps
+#
+# Build docker images and deploy k8s apps
+#############################################################################
+- name: 'Play 13: Build docker images, and deploy apps'
+  hosts: "{{ k8sRemoteMaster }}"
+  # remote_user: ubuntu
   vars_files:
   - variables/group_names.yml
   - variables/path_names.yml
@@ -302,8 +488,8 @@
   - variables/path_names.yml
 
   tasks:
-  - name: Untaint K8S Master
-    ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_untaint_master.yml
+  # - name: Untaint K8S Master
+  #   ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_untaint_master.yml
 
   - name: Build Docker Images
     vars:
@@ -323,13 +509,23 @@
 
 
 #############################################################################
-### Play 9: Configure IP addresses and Ports on Consumers and Producers
+### Play 12: Configure IP addresses and Ports on Consumers and Producers
+#
+#TODO maybe need this???
 #
 # Untaint K8S master to be a worker, build docker images,
 #############################################################################
-- name: 'Play 9: Configure IP addresses and Ports on Consumers and Producers'
-  hosts: "{{ k8sMaster }}"
-  remote_user: ubuntu
+
+  # TODO: pull producer image???
+
+#############################################################################
+### Play 14: Configure IP addresses and Ports on Consumers and Producers
+#
+# Untaint K8S master to be a worker, build docker images,
+#############################################################################
+- name: 'Play 14: Configure IP addresses and Ports on Consumers and Producers'
+  hosts: "{{ k8sRemoteMaster }}"
+  # remote_user: ubuntu
   vars_files:
   - variables/group_names.yml
   - variables/container_vars.yml

@@ -6,26 +6,55 @@
 #
 # Start k8s master, add flannel network virtualization
 #
+# REQUIRES:
+#   username - the remote_user value to use
+#   hostsGroupname - name of variable containing the hosts group to run the playbook against
+
+# - name: Start the k8s cluster and add flannel network virtualization
+#   hosts: "{{ hostsGroupname }}" # "{{ lookup('vars', hostsGroupname) }}"
+#   remote_user: "{{ username }}"
+#   strategy: debug
+#   vars_files:
+#   - variables/group_names.yml
+#   tasks:
 - name: Start k8s control plane
   become: yes
   ansible.builtin.shell: kubeadm init --node-name kubemaster --pod-network-cidr=10.244.0.0/16
 
+- name: Store target user
+  ansible.builtin.shell: printenv USER
+  register: targetUser
+
 
 - name: Make the ~/.kube directory
+  become: yes
   ansible.builtin.file:
     state: directory
-    path: ~/.kube
+    path: "/home/{{ targetUser.stdout }}/.kube"
 
 - name: Copy over the k8s config file into the ~/.kube directory
   become: yes
   ansible.builtin.copy:
     remote_src: yes
     src: /etc/kubernetes/admin.conf
-    dest: /home/ubuntu/.kube/config
-    owner: ubuntu
-    group: ubuntu
+    dest: "/home/{{ targetUser.stdout }}/.kube/config"
+    owner: "{{ targetUser.stdout }}"
+    group: "{{ targetUser.stdout }}"
 
 - name: Add Flannel Network Virtualization
   ansible.builtin.shell: |
     kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+
+# - name: Store join command to register
+#   ansible.builtin.shell: kubeadm token create --print-join-command
+#   register: joinCommandOutput
+
+# - name: Store join command as a fact
+#   ansible.builtin.set_fact:
+#     joinCommand: "{{ joinCommandOutput.stdout }}"
+
+# - name: debug
+#   ansible.builtin.set_fact:
+#     # key_value: "{{ jc }}-{{ lookup('vars', hostsGroupname) }}: {{ joinCommandOutput.stdout }}"
+#     key_value: "joincommand: {{ joinCommandOutput.stdout }}"
 ...

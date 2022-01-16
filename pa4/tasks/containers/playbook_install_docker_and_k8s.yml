@@ -39,7 +39,7 @@
   become: yes
   ansible.builtin.user:
     append: yes
-    user: ubuntu
+    user: "{{ lookup('env', 'USER') }}"
     groups:
     - docker
 

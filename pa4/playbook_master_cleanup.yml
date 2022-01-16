@@ -35,4 +35,43 @@
   - name: destroy AWS instances
     ansible.builtin.include_tasks: tasks/aws_instance_management/playbook_cleanup.yml
     when: localVarsStat.stat.exists
+
+
+#############################################################################
+### Play 2: Cleanup k8s on local provider vms
+#
+# Destroy cluster living on local provider vms
+#############################################################################
+- name: 'Play 2: Cleanup k8s on local provider vms'
+  hosts: "{{ AllProducers }}"
+  vars_files:
+  - variables/group_names.yml
+
+  tasks:
+  # - name: reset kubeadm -f
+  #   become: yes
+  #   ansible.builtin.shell: kubeadm reset
+
+  # - name: apt purge kubenetes packages
+  #   become: yes
+  #   ansible.builtin.apt:
+  #     purge: yes
+  #     state: absent
+  #     name:
+  #     - kubeadm
+  #     - kubectl
+  #     - kubelet
+  #     - kubernetes-cni
+  #     autoremove: yes
+
+  - name: remove kubernetes files and directory
+    become: yes
+    ansible.builtin.file:
+      path: "{{ item }}"
+      state: absent
+    loop:
+    - ~/.kube
+    - /etc/kubernetes/
+    - /var/lib/kubelet/
+    - /var/lib/etcd/
 ...

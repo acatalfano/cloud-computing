@@ -67,19 +67,40 @@
 - name: Refresh the updated Inventory File
   ansible.builtin.meta: refresh_inventory
 
-- name: Add new instances to all_remote group
-  ansible.builtin.add_host:
-    hostname: "{{ item.public_ip_address }}"
-    groupname: "{{ allRemote }}"
-  loop: [ "{{ master_instance }}", "{{ regular_instance }}" ]
+# - name: Add new instances to all_remote and all_remote_and_producers group
+#   ansible.builtin.add_host:
+#     hostname: "{{ item.public_ip_address }}"
+#     groups:
+#     - "{{ allRemote }}"
+#     - "{{ allRemoteAndProducers }}"
+#   loop: [ "{{ master_instance }}", "{{ regular_instance }}" ]
 
-- name: Add instances to appropriate vm2 and vm3 groups
+- name: Add instances to appropriate vm2 and vm3 groups and to all_remote and all_remote_and_producers
   ansible.builtin.add_host:
     hostname: "{{ item.0.public_ip_address }}"
-    groupname: "{{ item.1 }}"
+    groups:
+    - "{{ item.1 }}"
+    - "{{ allRemote }}"
+    - "{{ allRemoteAndProducers }}"
   with_together:
   - [ "{{ master_instance }}", "{{ regular_instance }}" ]
   - [ "{{ kafka1ZookeeperConsumer }}", "{{ kafka2CouchDB }}" ]
+
+- name: Add master to k8s_remote_and_producer_masters
+  ansible.builtin.add_host:
+    hostname: "{{ master_instance.public_ip_address }}"
+    group: "{{ k8sRemoteAndProducerMasters }}"
+
+# - name: Add producers to all_remote_and_producers group
+#   ansible.builtin.add_host:
+#     hostname: "{{ item }}"
+#     ansible_connection: ssh
+#     ansible_user: vagrant
+#     ansible_ssh_private_key_file: "{{ producerPrivateKeyFile }}"
+#     group: "{{ allRemoteAndProducers }}"
+#   loop:
+#   - producer1
+#   - producer2
 
 - name: set ips as facts
   ansible.builtin.set_fact:

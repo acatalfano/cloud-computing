@@ -17,5 +17,11 @@ zookeeperServerStart: "{{ zookeeperDirectory }}/bin/zookeeper-server-start.sh"
 zookeeperProperties: "{{ zookeeperDirectory }}/config/zookeeper.properties"
 
 localVmVariables: ~/local_vars
-producerScript: ~/producer.py
+
+mapReduceConfig: ~/user-configs/map-reduce-config.yml
+producerScript: ~/user-configs/producer.py
+consumerScript: ~/user-configs/consumer.py
+allDataFile: ~/user-configs/energy-sorted1M.csv
+
+producerPrivateKeyFile: /home/vagrant/.ssh/producer_id_rsa
 ...

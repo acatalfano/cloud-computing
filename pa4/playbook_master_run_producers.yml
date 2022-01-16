@@ -15,12 +15,13 @@
 #############################################################################
 - name: 'Play 1: Install Dependencies on all Producers'
   hosts: AllProducers
-  remote_user: vagrant
+  # remote_user: vagrant
   vars_files:
   - ./variables/path_names.yml
 
   tasks:
-  - ansible.builtin.include_tasks: tasks/playbook_aptitude_upgrade.yml
+  - name: Upgrade packages
+    ansible.builtin.include_tasks: tasks/playbook_aptitude_upgrade.yml
 
   - name: Install DistUtils for Python3
     become: yes
@@ -49,7 +50,7 @@
 #############################################################################
 - name: 'Play 2: Write the Producer1 script'
   hosts: Producer1
-  remote_user: vagrant
+  # remote_user: vagrant
   vars_files:
   - ./variables/producer_src_config.yml
   - ./variables/path_names.yml
@@ -71,7 +72,7 @@
 #############################################################################
 - name: 'Play 3: Write the Producer2 script'
   hosts: Producer2
-  remote_user: vagrant
+  # remote_user: vagrant
   vars_files:
   - ./variables/producer_src_config.yml
   - ./variables/path_names.yml
@@ -93,7 +94,7 @@
 #############################################################################
 - name: "Play 4: Run Producer on producer VM's"
   hosts: AllProducers
-  remote_user: vagrant
+  # remote_user: vagrant
   vars_files:
   - ./variables/path_names.yml
 

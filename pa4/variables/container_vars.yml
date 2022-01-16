@@ -7,6 +7,8 @@ images:
   directory: kafka
 - name: teamx-zookeeper
   directory: zookeeper
+- name: teamx-producer
+  directory: producer
 
 deployments:
   couchdb:

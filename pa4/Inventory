@@ -11,8 +11,19 @@ producer2       ansible_connection=ssh      ansible_user=vagrant    ansible_ssh_
 producer1       ansible_connection=ssh      ansible_user=vagrant    ansible_ssh_private_key_file=/home/vagrant/.ssh/producer_id_rsa
 producer2       ansible_connection=ssh      ansible_user=vagrant    ansible_ssh_private_key_file=/home/vagrant/.ssh/producer_id_rsa
 
+[k8s_remote_and_producer_masters]
+producer1       ansible_connection=ssh      ansible_user=vagrant    ansible_ssh_private_key_file=/home/vagrant/.ssh/producer_id_rsa
+
+[all_remote_and_producers]
+producer1       ansible_connection=ssh      ansible_user=vagrant    ansible_ssh_private_key_file=/home/vagrant/.ssh/producer_id_rsa
+producer2       ansible_connection=ssh      ansible_user=vagrant    ansible_ssh_private_key_file=/home/vagrant/.ssh/producer_id_rsa
+
+[k8s_remote_and_producer_workers]
+producer2       ansible_connection=ssh      ansible_user=vagrant    ansible_ssh_private_key_file=/home/vagrant/.ssh/producer_id_rsa
+
 [Remote1]
 1.2.3.4         ansible_connection=ssh      ansible_user=ubuntu
 
 [Remote2]
 1.2.3.4         ansible_connection=ssh      ansible_user=ubuntu
+

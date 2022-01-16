@@ -3,7 +3,7 @@
 
 Vagrant.configure("2") do |config|
   config.vm.box = "ubuntu/focal64"
-  config.vm.boot_timeout = 600
+  # config.vm.boot_timeout = 600
   config.vm.provider "virtualbox" do |vb|
     vb.gui = true
     vb.memory = "2048"
@@ -13,6 +13,8 @@ Vagrant.configure("2") do |config|
   PRODUCER_COUNT = 2
   PRODUCER_HOST_BASE = "producer"
   IP_BASE = "192.168.56.1"
+  KUBELET_PORT_RANGE_START = 30000
+  KUBELET_PORT_RANGE_END = 32767
 
   (1..PRODUCER_COUNT).each do |i|
     config.vm.define "producer#{i}" do |producer|
@@ -37,6 +39,29 @@ Vagrant.configure("2") do |config|
       producer.vm.hostname = hostname
       producer.vm.network "private_network", ip: "#{IP_BASE}#{i}"
       producer.vm.network "forwarded_port", guest: 22, host: 2210 + i, id: "ssh"
+      producer.vm.network "forwarded_port", guest: 8080, host: 30000 + i, id: "http alternative"
+      # producer.vm.network "forwarded_port", guest: 80, host: 30100 + i, id: "http"
+      # producer.vm.network "forwarded_port", guest: 443, host: 30200 + i, id: "https"
+
+      # producer.vm.network "forwarded_port", guest: 8285, host: 30000 + i, id: "flannel 1", protocol: "udp"
+      # producer.vm.network "forwarded_port", guest: 8472, host: 30100 + i, id: "flannel 2", protocol: "udp"
+
+      producer.vm.network "forwarded_port", guest: 6443, host: 30300 + i, id: "k8s control"
+      producer.vm.network "forwarded_port", guest: 2379, host: 30400 + i, id: "etcd server client api 1"
+      producer.vm.network "forwarded_port", guest: 2380, host: 30500 + i, id: "etcd server client api 1"
+      producer.vm.network "forwarded_port", guest: 10259, host: 30600 + i, id: "kube-scheudler"
+      producer.vm.network "forwarded_port", guest: 10257, host: 30700 + i, id: "kube-controller-manager"
+      producer.vm.network "forwarded_port", guest: 10250, host: 30900 + i, id: "kubelet api 1"
+      # producer.vm.network "forwarded_port", guest: 10251, host: 31000 + i, id: "kubelet api 2"
+      # producer.vm.network "forwarded_port", guest: 10252, host: 31100 + i, id: "kubelet api 3"
+
+      # configure nodePort services ports
+      # (KUBELET_PORT_RANGE_END - KUBELET_PORT_RANGE_START + 1).times do |j|
+      #   producer.vm.network "forwarded_port",
+      #     guest: KUBELET_PORT_RANGE_START + j,
+      #     host: 31100 + (i * 100) + j,
+      #     id: "#{PRODUCER_HOST_BASE}#{i} nodePort #{j}"
+      # end
 
       producer.vm.provider "virtualbox" do |vb|
         vb.customize ["modifyvm", :id, "--name", hostname]

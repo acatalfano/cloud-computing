@@ -35,9 +35,10 @@
 ### Play 1: Testing
 #####################################################################
 - name: Testing
+  hosts: Producer1
   # hosts: MyLocalVMs
-  hosts: Remote1
-  remote_user: ubuntu
+  # hosts: Remote1
+  # remote_user: ubuntu
   vars_files:
   - variables/container_vars.yml
   - variables/path_names.yml
@@ -92,12 +93,69 @@
         selfLink: ""
 
   tasks:
-  - name: try parsing string as a list
-    vars:
-      strList: "[\n  32591,\n  30527,\n  30317,\n  32737,\n  31863\n]"
-      cleanStr: "{{ strList | regex_replace('[(\\n)(\\s*)\\[\\]]', '') }}"
+  - name: print hostvars
     debug:
-      msg: "{{ cleanStr.split(',') }}"
+      var: hostvars
+  - name: print ansible_facts
+    debug:
+      var: ansible_facts
+  - name: print ansible_local
+    debug:
+      var: ansible_local
+  - name: print xyz
+    debug:
+      msg: "{{ inventory_hostname }}"
+  - name: get env USER
+    debug:
+      msg: "{{ lookup('env', 'USER') }}"
+  - name: get user directory
+    debug:
+      msg: "{{ hostvars[inventory_hostname].ansible_user_dir }}"
+  ################################################################################################################
+  # TODO: come back to this later!!!
+  # - name: copy over user-configs
+  #   ansible.builtin.copy:
+  #     src: ./file_srcs/user-configs
+  #     dest: ~/
+
+  # - name: read map-reduce-config
+  #   ansible.builtin.include_vars: "{{ mapReduceConfig }}"
+
+  # - name: make the split-data directory
+  #   ansible.builtin.file:
+  #     state: directory
+  #     path: ~/data
+  # - name: split up csv file
+  #   ansible.builtin.shell:
+  #     cmd: split -n l/{{ mapCount }} --additional-suffix=.csv {{ allDataFile }} split-
+  #     chdir: ~/data
+
+  # - name: store the split files in register
+  #   ansible.builtin.shell: ls ~/data
+  #   register: splitFiles
+
+  # - name: loop over the split files
+  #   loop: "{{ splitFiles.stdout_lines }}"
+  #   debug:
+  #     var: item
+
+  # - name: remove the split up csv files
+  #   ansible.builtin.file:
+  #     state: absent
+  #     path: ~/data
+
+    # split -n l/{{ nProds }} -d --additional-suffix=.csv -a {{ (numProds to string).length }} energy-sorted1M.csv split-
+    #OR:
+    # split -n l/{{ nProds }} --additional-suffix=.csv energy-sorted1M.csv split-
+    #   and just loop over stdout_lines for:
+    #       ls split-*
+  ################################################################################################################
+  # - name: try parsing string as a list
+  #   vars:
+  #     strList: "[\n  32591,\n  30527,\n  30317,\n  32737,\n  31863\n]"
+  #     cleanStr: "{{ strList | regex_replace('[(\\n)(\\s*)\\[\\]]', '') }}"
+  #   debug:
+  #     msg: "{{ cleanStr.split(',') }}"
   ################################################################################################################
   # - name: Store exposed NodePorts for Zookeeper and Couchdb k8s apps
   #   # ansible.builtin.shell: "
