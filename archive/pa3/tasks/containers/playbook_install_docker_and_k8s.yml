@@ -1,0 +1,73 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano
+# Created: Fall 2021
+#
+# install kubernetes + docker
+#
+
+- name: Add Kubernetes GPG Key
+  become: yes
+  ansible.builtin.apt_key:
+    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+
+- name: Add Kubernetes Repository
+  become: yes
+  ansible.builtin.apt_repository:
+    repo: deb http://apt.kubernetes.io/ kubernetes-xenial main
+
+- name: Install Docker and Kubernetes
+  become: yes
+  ansible.builtin.apt:
+    name:
+    - docker.io
+    - kubeadm
+    - kubelet
+    - kubectl
+    - kubernetes-cni
+
+- name: Configure docker to use systemd-based Cgroup driver
+  become: yes
+  ansible.builtin.lineinfile:
+    path: /lib/systemd/system/docker.service
+    regexp: '(^ExecStart\b.*)$'
+    line: '\1 --exec-opt native.cgroupdriver=systemd'
+    backrefs: yes
+
+- name: Add user to docker group
+  become: yes
+  ansible.builtin.user:
+    append: yes
+    user: ubuntu
+    groups:
+    - docker
+
+- name: Change permissions for docker.sock file
+  become: yes
+  ansible.builtin.file:
+    path: /var/run/docker.sock
+    mode: 0666
+
+- name: Reload Daemon
+  become: yes
+  ansible.builtin.shell: |
+    systemctl daemon-reload
+    systemctl restart docker
+
+- name: Add kubectl tab-completion line to .bashrc
+  ansible.builtin.lineinfile:
+    path: ~/.bashrc
+    line: source <(kubectl completion bash)
+
+- name: Store output of kubectl completion bash
+  ansible.builtin.shell: kubectl completion bash
+  register: completionBashScript
+
+- name: Write kubectl completion bash to /etc/bash_completion.d/kubectl
+  become: yes
+  ansible.builtin.lineinfile:
+    path: /etc/bash_completion.d/kubectl
+    line: "{{ completionBashScript.stdout }}"
+    create: yes
+...

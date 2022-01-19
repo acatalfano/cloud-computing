@@ -1,0 +1,78 @@
+---
+apiVersion: v1
+kind: Service
+# ansible needs to replace all kafka-broker-(.*) with proper ID
+#     likewise for app: kafka (should be app: kafka-n)
+metadata:
+  name: kafka-broker-x
+  labels:
+    app: kafka-deployment
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 9092
+    targetPort: 9092
+  selector:
+    app: kafka
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka
+  minReadySeconds: 5
+  template:
+    metadata:
+      labels:
+        app: kafka
+    spec:
+      restartPolicy: Always
+      containers:
+      - name: kafka
+        # ansible needs to replace the "1.2.3.4"
+        image: 1.2.3.4:5000/teamx-kafka-base:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 9092
+        env:
+        - name: KAFKA_BIN_FILE
+          value: NEW BIN FILE VALUE
+        - name: KAFKA_PROPS_FILE
+          value: NEW PROPS FILE VALUE
+        - name: KAFKA_API_VERSIONS_BIN_FILE
+          value: PATH OF API VERSIONS BIN
+        - name: ADVERTISED_DNS
+          value: ADVERTISED DNS VALUE
+        - name: ZOOKEEPER_DNS
+          value: ZOOKEEPER DNS VALUE
+        - name: BROKER_ID
+          value: '0'
+        command:
+        - $(KAFKA_BIN_FILE)
+        - $(KAFKA_PROPS_FILE)
+        - --override
+        - listeners=PLAINTEXT://:9092
+        - --override
+        - advertised.listeners=PLAINTEXT://$(ADVERTISED_DNS):9092
+        - --override
+        - listener.security.protocol.map=PLAINTEXT
+        - --override
+        - listener.security.protocol.map=PLAINTEXT:PLAINTEXT,SSL:SSL,SASL_PLAINTEXT:SASL_PLAINTEXT,SASL_SSL:SASL_SSL
+        - --override
+        - zookeeper.connect=$(ZOOKEEPER_DNS):2181
+        - --override
+        - broker.id=$(BROKER_ID)
+
+        # readinessProve: .....readinessProbe???? v or b????
+        #   initialDelaySeconds: 10
+        #   timeoutSeconds: 5
+        #   exec:
+        #     command:
+        #     - sh
+        #     - -c
+        #     - "$(KAFKA_API_VERSIONS_BIN_FILE) --bootstrap-server=localhost:9092"
+...

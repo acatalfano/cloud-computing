@@ -90,17 +90,42 @@
   ansible.builtin.add_host:
     hostname: "{{ master_instance.public_ip_address }}"
     group: "{{ k8sRemoteAndProducerMasters }}"
+    ansible_connection: ssh
+    ansible_user: ubuntu
 
-# - name: Add producers to all_remote_and_producers group
-#   ansible.builtin.add_host:
-#     hostname: "{{ item }}"
-#     ansible_connection: ssh
-#     ansible_user: vagrant
-#     ansible_ssh_private_key_file: "{{ producerPrivateKeyFile }}"
-#     group: "{{ allRemoteAndProducers }}"
-#   loop:
-#   - producer1
-#   - producer2
+- name: Add producer1 to k8s_remote_and_producer_masters
+  ansible.builtin.add_host:
+    hostname: producer1
+    group: "{{ k8sRemoteAndProducerMasters }}"
+    ansible_connection: ssh
+    ansible_user: vagrant
+    ansible_ssh_private_key_file: /home/vagrant/.ssh/producer_id_rsa
+
+- name: Add worker to k8s_remote_and_producer_workers
+  ansible.builtin.add_host:
+    hostname: "{{ regular_instance.public_ip_address }}"
+    group: "{{ k8sRemoteAndProducerWorkers }}"
+    ansible_connection: ssh
+    ansible_user: ubuntu
+
+- name: Add producer2 to k8s_remote_and_producer_workers
+  ansible.builtin.add_host:
+    hostname: producer2
+    group: "{{ k8sRemoteAndProducerWorkers }}"
+    ansible_connection: ssh
+    ansible_user: vagrant
+    ansible_ssh_private_key_file: /home/vagrant/.ssh/producer_id_rsa
+
+- name: Add producers to all_remote_and_producers group
+  ansible.builtin.add_host:
+    hostname: "{{ item }}"
+    ansible_connection: ssh
+    ansible_user: vagrant
+    ansible_ssh_private_key_file: "{{ producerPrivateKeyFile }}"
+    group: "{{ allRemoteAndProducers }}"
+  loop:
+  - producer1
+  - producer2
 
 - name: set ips as facts
   ansible.builtin.set_fact:

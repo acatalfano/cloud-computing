@@ -1,0 +1,33 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano, Abhinav Jambulingam
+# Created: Fall 2021
+#
+# configure kubeworker and join cluster
+#
+# REQUIRES:
+#     privateIP
+#     remoteMasterIP
+#
+# ASSUMES:
+#     joinCommand is stored in remoteMasterIP's hostvars
+#
+
+- name: Set Hostname Aliases on K8S Worker
+  become: yes
+  vars:
+    lines:
+    - "{{ inventory_hostname }} kubeworker2"
+    - "{{ privateIP | default('127.0.0.1') }} kubeworker2"
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    line: "{{ lines | join('\n') }}"
+
+- name: debug hostvars
+  debug:
+    var: hostvars
+
+- name: Join K8S Cluster
+  become: yes
+  ansible.builtin.shell: "{{ hostvars[remoteMasterIP].joinCommand }} --node-name kubeworker2"

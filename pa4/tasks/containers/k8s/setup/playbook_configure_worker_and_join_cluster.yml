@@ -9,9 +9,7 @@
 # REQUIRES:
 #     privateIP
 #     remoteMasterIP
-#
-# ASSUMES:
-#     joinCommand is stored in remoteMasterIP's hostvars
+#     joinCommandName
 #
 
 - name: Set Hostname Aliases on K8S Worker
@@ -28,6 +26,17 @@
   debug:
     var: hostvars
 
+- name: debug inventory hostname
+  debug:
+    msg: "{{ inventory_hostname }}"
+- name: debug ansible facts
+  debug:
+    msg: "{{ ansible_facts }}"
+
 - name: Join K8S Cluster
   become: yes
-  ansible.builtin.shell: "{{ hostvars[remoteMasterIP].joinCommand }} --node-name kubeworker2"
+  # vars:
+  #   joinCommand: "{{ hostvars[inventory_hostname][joinCommandName] }}" #"{{ lookup('vars', joinCommandName, default='') }}"
+  ansible.builtin.shell: "{{ joinCommand }} --node-name kubeworker2"
+  when: joinCommand
+...

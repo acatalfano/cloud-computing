@@ -1,0 +1,22 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano, Abhinav Jambulingam
+# Created: Fall 2021
+#
+# add insecure registries config and restart docker daemon
+#
+
+- name: Create daemon.json and write insecure registries config
+  become: yes
+  ansible.builtin.lineinfile:
+    create: yes
+    line: "{{ { 'insecure-registries': [k8sRemoteMasterIp + ':5000'] } | to_json }}"
+    path: /etc/docker/daemon.json
+
+- name: Reload Daemon
+  become: yes
+  ansible.builtin.shell: |
+    systemctl daemon-reload
+    systemctl restart docker
+...

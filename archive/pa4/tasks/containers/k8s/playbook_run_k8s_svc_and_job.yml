@@ -1,0 +1,31 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano, Abhinav Jambulingam
+# Created: Fall 2021
+#
+# Deploy a k8s service and then a pod
+#
+# REQUIRES:
+#   containersDirectory
+#   subDirectory - sub-directory in containers directory
+
+- name: Install jq if not installed
+  become: yes
+  ansible.builtin.apt: name=jq
+
+- name: Deploy the service and pod
+  ansible.builtin.shell: "kubectl apply -f {{ containersDirectory }}/{{ subDirectory }}/{{ item }}"
+  loop:
+  - svc.yml
+  - job.yml
+
+- name: Wait for the pod to be ready
+  ansible.builtin.shell: kubectl get pods -o json | jq -r '.items[].status.phase'
+  register: statuses
+  until: not statuses.stdout_lines | reject('match', '^(Running|Succeeded)$')
+  retries: 6
+  # TODO: pretty sure it shouldn't be needing "Succeeded" right?????
+  # TODO: ---> for when it's a DEPLOYMENT its status should be "Running"
+  # TODO:     ---> also add     -l app=%%APP_NAME%%     to the kubectl get pods cmd when it's a DEPLOYMENT!!!
+...

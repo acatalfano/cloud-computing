@@ -1,0 +1,39 @@
+---
+# variables used in docker and k8s tasks
+images:
+- name: teamx-couchdb
+  directory: couchdb
+- name: teamx-kafka-base
+  directory: kafka
+- name: teamx-zookeeper
+  directory: zookeeper
+
+deploymentServiceNames:
+  couchdb: teamx-couchdb
+  zookeeper: teamx-zookeeper
+  # for kafka, this is a prefix, to be appended with "-BROKER_ID"
+  kafka: teamx-kafka
+
+deployments:
+  couchdb:
+    appName: couchdb
+    subDirectory: couchdb
+    deploymentName: couchdb-deployment
+    deploySeparately: yes
+    externalServiceName: "{{ deploymentServiceNames.couchdb }}"
+
+  zookeeper:
+    appName: zookeeper
+    subDirectory: zookeeper
+    deploymentName: zookeeper-deployment
+    deploySeparately: no
+    externalServiceName: "{{ deploymentServiceNames.zookeeper }}"
+
+  kafka:
+    appName: kafka
+    subDirectory: kafka
+    deploymentName: kafka-deployment
+    deploySeparately: no
+    externalServiceName: "{{ deploymentServiceNames.kafka }}"
+    instanceCount: 5
+...

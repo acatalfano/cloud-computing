@@ -1,0 +1,27 @@
+---
+containersDirectoryName: containers
+containersDirectory: "~/{{ containersDirectoryName }}"
+localContainersDirectory: "/vagrant/file_srcs/{{ containersDirectoryName }}"
+
+kafkaDeploymentDirectory: '{{ containersDirectory }}/kafka'
+zookeeperDeploymentDirectory: '{{ containersDirectory }}/zookeeper'
+
+kafkaDirectory: /kafka_
+zookeeperDirectory: "{{ kafkaDirectory }}"
+
+kafkaServerStart: "{{ kafkaDirectory }}/bin/kafka-server-start.sh"
+kafkaServerProperties: "{{ kafkaDirectory }}/config/server.properties"
+kafkaApiVersionsBin: "{{ kafkaDirectory }}/bin/kafka-broker-api-versions.sh"
+
+zookeeperServerStart: "{{ zookeeperDirectory }}/bin/zookeeper-server-start.sh"
+zookeeperProperties: "{{ zookeeperDirectory }}/config/zookeeper.properties"
+
+localVmVariables: ~/local_vars
+
+mapReduceConfig: ~/user-configs/map-reduce-config.yml
+producerScript: ~/user-configs/producer.py
+consumerScript: ~/user-configs/consumer.py
+allDataFile: ~/user-configs/energy-sorted1M.csv
+
+producerPrivateKeyFile: /home/vagrant/.ssh/producer_id_rsa
+...

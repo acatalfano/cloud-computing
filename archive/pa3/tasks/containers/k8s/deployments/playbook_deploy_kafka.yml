@@ -1,0 +1,55 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano
+# Created: Fall 2021
+#
+# Run Kafka Job on a Pod
+#
+# REQUIRES:
+#   instanceId - unique ID for this kafka instance
+#   kafkaDeploymentDirectory - path (on remote) to directory containing deployment.yml for kafka deployment
+#   deployments.kafka - (config from the container_vars.yml file)
+
+- name: Set Kafka service-name with instanceId suffic
+  ansible.builtin.replace:
+    path: "{{ kafkaDeploymentDirectory }}/deployment.yml"
+    regexp: '(?<=name: kafka-broker).*'
+    replace: "-{{ instanceId }}"
+
+- name: Set Kafka app-name with instanceId suffix
+  ansible.builtin.replace:
+    path: "{{ kafkaDeploymentDirectory }}/deployment.yml"
+    regexp: '(?<=app: kafka).*'
+    replace: "-{{ instanceId }}"
+    after: apps/v1
+
+- name: Set Kafka app deployment-name with instanceId suffix
+  ansible.builtin.replace:
+    path: "{{ kafkaDeploymentDirectory }}/deployment.yml"
+    regexp: '(?<=name: kafka-deployment).*'
+    replace: "-{{ instanceId }}"
+    after: apps/v1
+    before: 'spec:'
+
+- name: Set Kafka app container-name with instanceId suffix
+  ansible.builtin.shell: >-
+    sed 'N;0,/\(containers: *\n *- name: kafka\).*/s//\1-{{ instanceId }}/;P;D' {{ kafkaDeploymentDirectory }}/deployment.yml
+
+- name: Configure Kafka Deployment BROKER_ID and ADVERTISED_DNS Environment VariableS For Instance
+  vars:
+    targetDirectory: "{{ kafkaDeploymentDirectory }}"
+    envMap:
+      BROKER_ID: "\"{{ instanceId }}\""
+      ADVERTISED_DNS: "{{ deploymentServiceNames.kafka }}-{{ instanceId }}"
+  ansible.builtin.include_tasks: ../setup/playbook_configure_deployment_environment_variables.yml
+
+- name: "Create Kafka Instance"
+  vars:
+    appName: "{{ deployments.kafka.appName }}-{{ instanceId }}"
+    subDirectory: "{{ deployments.kafka.subDirectory }}"
+    deploymentName: "{{ deployments.kafka.deploymentName }}-{{ instanceId }}"
+    externalServiceName: "{{ deployments.kafka.externalServiceName }}-{{ instanceId }}"
+    deploySeparately: no
+  ansible.builtin.include_tasks: ./playbook_start_deployment.yml
+...

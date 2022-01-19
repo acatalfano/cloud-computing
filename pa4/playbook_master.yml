@@ -69,6 +69,7 @@
   remote_user: ubuntu
   vars_files:
   - variables/path_names.yml
+  - variables/group_names.yml
   vars:
     zookeeperIp: vm2Ip
     couchdbIp: vm3Ip
@@ -129,25 +130,6 @@
       k8sRemoteMasterIp: "{{ groups[k8sRemoteMaster][0] }}"
     ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_add_insecure_registries_config.yml
     when: not packagesInstalled.stat.exists
-
-#############################################################################
-### Play 5B: On Producers, install Docker + K8S and setup kubectl tab-completion
-#
-# Install K8S, Docker, and Dependencies on all remotes
-#############################################################################
-# - name: 'Play 5B: On Producers, install Docker + K8S and setup kubectl tab-completion'
-#   hosts: "{{ allRemoteAndProducers }}"
-#   remote_user: vagrant
-#   vars_files:
-#   - variables/group_names.yml
-#   tasks:
-#   - name: Install Docker and K8S
-#     ansible.builtin.include_tasks: tasks/containers/playbook_install_docker_and_k8s.yml
-
-#   - name: Add master as insecure registry
-#     vars:
-#       k8sRemoteMasterIp: "{{ groups[k8sRemoteMaster][0] }}"
-#     ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_add_insecure_registries_config.yml
 
 #############################################################################
 ### Play 6A: Configure host aliases on remote k8s master
@@ -358,6 +340,8 @@
   - variables/group_names.yml
   tasks:
   - name: Start k8s cluster
+    vars:
+      joinCommandName: joinCommandRemote
     ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_store_join_command.yml
 
 - name: 'Play 9B: Store k8s Join Command for Producer cluster'
@@ -366,6 +350,8 @@
   - variables/group_names.yml
   tasks:
   - name: Start k8s cluster
+    vars:
+      joinCommandName: joinCommandProducer
     ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_store_join_command.yml
 
 # TODO TODO TODO TODO: problem with the join command or something? (storing/reading)
@@ -422,7 +408,8 @@
     vars:
       # publicIP: "{{ inventory_hostname }}"
       privateIP: "{{ hostvars['127.0.0.1'].vm3_private_ip }}"
-      remoteMasterIP: "{{ groups[k8sRemoteMaster][0] }}"
+      remoteMasterIP: "{{ groups['Remote1'][0] }}"
+      joinCommand: "{{ hostvars[remoteMasterIP]['joinCommandRemote'] }}"
     ansible.builtin.include_tasks: ./tasks/containers/k8s/setup/playbook_configure_worker_and_join_cluster.yml
   # - name: Set Hostname Aliases on K8S Worker
   #   become: yes
@@ -456,6 +443,8 @@
     vars:
       # publicIP: "{{ inventory_hostname }}"
       remoteMasterIP: "{{ groups[k8sProducerMaster][0] }}"
+      # joinCommandName: joinCommandProducer
+      joinCommand: "{{ hostvars[remoteMasterIP]['joinCommandProducer'] }}"
     ansible.builtin.include_tasks: ./tasks/containers/k8s/setup/playbook_configure_worker_and_join_cluster.yml
 
 #############################################################################

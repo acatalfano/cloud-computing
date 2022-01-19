@@ -1,0 +1,38 @@
+---
+# EECS 4287/5287: Principles of Cloud Computing
+# Author: Adam Catalfano, Abhinav Jambulingam
+# Created: Fall 2021
+#
+# This playbook populates the map and reduce clusters
+# and then runs the map-reduce algorithm
+#
+# REQUIRES: spark is deployed and linked up
+
+#############################################################################
+### Play 1: Get User Config Input
+#
+# Get Input for number of map and reduce nodes.
+# Build producer image (on top of producer-base).
+# Build kafka-consumer image (on top of kafka-base).
+#############################################################################
+
+
+#############################################################################
+### Play 2: Deploy kafka k8s Apps
+#
+# Deploy and configure kafka apps
+#############################################################################
+
+#############################################################################
+### Play 3: Prepare and start producers
+#
+# Split Data among the Producers and run start running jobs
+#############################################################################
+
+#############################################################################
+### Play 4: Cleanup
+#
+# Remove kafka and producer containers, as well as the kafka-consumer image
+#############################################################################
+
+...

@@ -1,0 +1,185 @@
+---
+# EECS 4287/5287: Principles of Cloud Computing
+# Author: Adam Catalfano
+# Created: Fall 2021
+#
+# DELETE THIS PLAYBOOK EVENTUALLY.....
+
+#####################################################################
+### Play 1: Testing
+#####################################################################
+
+- name: Testing
+  hosts: MyLocalVMs
+  remote_user: ubuntu
+  vars:
+    num: 4
+    fileTarget: /vagrant/file_srcs/containers/zookeeper/deployment.yml
+    baseSed: "sed '$!N;0,/\\(name: {{ targetVariable }}\\n *value: \\).*/s//\\1adam was here/;P;D'"
+    lst:
+    - first
+    - second
+    - third
+
+  tasks:
+  - name: test list-loop syntax
+    loop: "{{ lst }}"
+    debug:
+      var: item
+
+
+
+  ################################################################################################################
+  # - name: Create strimzi directory
+  #   ansible.builtin.file:
+  #     state: directory
+  #     path: ~/strimzi
+
+  # - name: Download and Extract the Strimzi Kafka Operator (.tar.gz archive)
+  #   ansible.builtin.unarchive:
+  #     remote_src: yes
+  #     src: https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.27.0/strimzi-0.27.0.tar.gz
+  #     dest: ~/strimzi/
+  #     # creates: ~/strimzi/
+  #     extra_opts:
+  #     - --strip-components
+  #     - 1
+
+  # - name: store in register list of files with name like ~/strimzi/install/cluster-operator/*RoleBinding*.yaml
+  #   ansible.builtin.find:
+  #     paths:
+  #     - ~/strimzi/install/cluster-operator/
+  #     patterns: '*RoleBinding*.yaml'
+  #   register: roleBindingFiles
+
+  # - name: test out list of found files
+  #   debug:
+  #     msg: "{{ roleBindingFiles.files | map(attribute='path') | join(' ') }}"
+  #   # debug:
+  #   #   var: item
+  #   # with_fileglob:
+  #   # - '~/strimzi/install/cluster-operator/*RoleBinding*.yaml'
+
+  # - name: remove strimzi directory
+  #   ansible.builtin.file:
+  #     state: absent
+  #     path: ~/strimzi/
+
+  ################################################################################################################
+  # - name: try equality operator
+  #   vars:
+  #     tst: 'tst'
+  #   debug:
+  #     msg: "{{ tst == 'tst' }}"
+
+  ################################################################################################################
+  # - name: map range to list of dicts (store as fact)
+  #   ansible.builtin.set_fact:
+  #     data: "{{ data | default([]) + [{ 'ordinal': item.1, 'idx': item.0 }] }}"
+  #   loop: "{{ range(5) | zip(['first', 'second', 'third', 'fourth', 'fifth']) }}"
+  # - name: map range to list of dicts (store as fact)
+  #   ansible.builtin.set_fact:
+  #     data: "{{ data | default([]) + [{ 'ordinal': item, 'idx': idx }] }}"
+  #   loop:
+  #   - 'first'
+  #   - 'second'
+  #   - 'third'
+  #   - 'fourth'
+  #   - 'fifth'
+  #   loop_control:
+  #     index_var: idx
+
+  # - name: print out the fact
+  #   debug:
+  #     var: data
+
+
+
+
+  ################################################################################################################
+
+  # - name: Map dict to list
+  #   vars:
+  #     data:
+  #       a: 1
+  #       b: 2
+  #       c: 3
+  #       d: 4
+  #   debug:
+  #     var: data | dict2items(key_name='alpha', value_name='numeric')
+
+
+  ################################################################################################################
+  # - name: build list of dicts
+  #   ansible.builtin.set_fact:
+  #     data: "{{
+  #       data | default([])
+  #       + [
+  #           {
+  #             'foo': 'bar',
+  #             'fiz': 'baz',
+  #             'id': item
+  #           }
+  #         ]
+  #       }}"
+  #   loop: "{{ range(num) | list }}"
+
+  # - name: debug data
+  #   debug:
+  #     var: data
+  # sed '$!N;0,/\(\n *value: \).*/s//\1adam was here/;P;D' deployment.yml
+  # - name: test out replace filter
+  #   debug:
+  #     msg: "{{ '/this/is/some/path' | replace('/', '//') }}"
+
+  ################################################################################################################
+  # - name: install dos2unix
+  #   become: yes
+  #   ansible.builtin.apt:
+  #     name: dos2unix
+
+  # - name: fix dos line endings
+  #   ansible.builtin.shell: "dos2unix {{ fileTarget }}"
+
+  # - name: replace zookeeperBinFile and zookeeperPropsFile values
+  #   vars:
+  #     targetVariable: "{{ item.envVar }}"
+  #     updateValue: "{{ item.val }}"
+  #   # ansible.builtin.include_tasks: ./playbook_sed_helper.yml
+  #   ansible.builtin.shell: >-
+  #     sed -i 'N;0,/\(name: {{ targetVariable }}\n *value: \).*/s//\1{{ updateValue }}/;P;D' {{ fileTarget }}
+  #   # $! isn't necessary I guess...
+  #   # sed -i '$!N;0,/\(name: {{ targetVariable }}\n *value: \).*/s//\1{{ updateValue }}/;P;D' {{ fileTarget }}
+  #   loop:
+  #   - envVar: ZOOKEEPER_BIN_FILE
+  #     val: binValue
+  #   - envVar: ZOOKEEPER_PROPS_FILE
+  #     val: propsValue
+  # # - name: replace zookeeperBinFile value
+  # #   ansible.builtin.shell: >-
+  # #     sed '$!N;0,/\(name: ZOOKEEPER_BIN_FILE\n *value: \).*/s//\1adam was here/;P;D' {{ fileTarget }}
+
+  # #   # ansible.builtin.replace:
+  # #   #   path: "{{ fileTarget }}"
+  # #   #   # after: 'name: ZOOKEEPER_BIN_FILE'
+  # #   #   regexp: (?<=value:).*$
+  # #   #   replace: ' NEW BIN FILE VALUE'
+
+  # # - name: replace zookeeperPropsFile value
+  # #   ansible.builtin.replace:
+  # #     path: "{{ fileTarget }}"
+  # #     # after: 'name: ZOOKEEPER_PROPS_FILE'
+  # #     regexp: (?<=value:).*$
+  # #     replace: ' NEW PROPS FILE VALUE'
+
+  # - name: load file contents in register
+  #   ansible.builtin.shell: >-
+  #     cat "{{ fileTarget }}"
+  #   register: fileContents
+
+  # - name: print contents of deployment file
+  #   debug:
+  #     var: fileContents.stdout_lines
+
+  ################################################################################################################
+...

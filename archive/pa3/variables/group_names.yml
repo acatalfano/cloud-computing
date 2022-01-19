@@ -1,0 +1,7 @@
+---
+allRemote: all_remote
+kafka1ZookeeperConsumer: vm2
+kafka2CouchDB: vm3
+k8sMaster: vm2 # reused for loose-coupling and clarity
+k8sWorker: vm3 # reused for loose-coupling and clarity
+...

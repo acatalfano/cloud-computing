@@ -6,11 +6,13 @@
 #
 # Store Join Command as a fact
 #
+# REQUIRES: joinCommandName
+
 - name: Store join command to register
   ansible.builtin.shell: kubeadm token create --print-join-command
   register: joinCommandOutput
 
 - name: Store join command as a fact
   ansible.builtin.set_fact:
-    joinCommand: "{{ joinCommandOutput.stdout }}"
+    "{{ joinCommandName }}": "{{ joinCommandOutput.stdout }}"
 ...

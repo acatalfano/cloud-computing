@@ -43,8 +43,8 @@ Vagrant.configure("2") do |config|
       # producer.vm.network "forwarded_port", guest: 80, host: 30100 + i, id: "http"
       # producer.vm.network "forwarded_port", guest: 443, host: 30200 + i, id: "https"
 
-      # producer.vm.network "forwarded_port", guest: 8285, host: 30000 + i, id: "flannel 1", protocol: "udp"
-      # producer.vm.network "forwarded_port", guest: 8472, host: 30100 + i, id: "flannel 2", protocol: "udp"
+      producer.vm.network "forwarded_port", guest: 8285, host: 30100 + i, id: "flannel 1", protocol: "udp"
+      producer.vm.network "forwarded_port", guest: 8472, host: 30200 + i, id: "flannel 2", protocol: "udp"
 
       producer.vm.network "forwarded_port", guest: 6443, host: 30300 + i, id: "k8s control"
       producer.vm.network "forwarded_port", guest: 2379, host: 30400 + i, id: "etcd server client api 1"
@@ -52,8 +52,8 @@ Vagrant.configure("2") do |config|
       producer.vm.network "forwarded_port", guest: 10259, host: 30600 + i, id: "kube-scheudler"
       producer.vm.network "forwarded_port", guest: 10257, host: 30700 + i, id: "kube-controller-manager"
       producer.vm.network "forwarded_port", guest: 10250, host: 30900 + i, id: "kubelet api 1"
-      # producer.vm.network "forwarded_port", guest: 10251, host: 31000 + i, id: "kubelet api 2"
-      # producer.vm.network "forwarded_port", guest: 10252, host: 31100 + i, id: "kubelet api 3"
+      producer.vm.network "forwarded_port", guest: 10251, host: 31000 + i, id: "kubelet api 2"
+      producer.vm.network "forwarded_port", guest: 10252, host: 31100 + i, id: "kubelet api 3"
 
       # configure nodePort services ports
       # (KUBELET_PORT_RANGE_END - KUBELET_PORT_RANGE_START + 1).times do |j|
@@ -101,8 +101,8 @@ Vagrant.configure("2") do |config|
     master.vm.provision "ansible_local" do |ansible|
       # TODO: drop this line later vvvv
       # ansible.playbook = "./playbook_master_testing.yml"
-      ansible.playbook = "./playbook_master.yml"
-      # ansible.playbook = "./playbook_master_cleanup.yml"
+      # ansible.playbook = "./playbook_master.yml"
+      ansible.playbook = "./playbook_master_cleanup.yml"
       ansible.install_mode = :pip
       ansible.pip_install_cmd = "sudo apt-get install -y python3-distutils && curl https://bootstrap.pypa.io/get-pip.py | sudo python3"
       ansible.verbose = true

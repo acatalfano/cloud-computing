@@ -1,0 +1,18 @@
+
+# Author: Adam Catalfano
+# Vanderbilt University
+# Created December 2021
+#
+#FROM ubuntu:latest
+FROM apache/couchdb:latest
+
+COPY ./local.ini /opt/couchdb/etc/local.ini
+RUN chmod 0640 /opt/couchdb/etc/local.ini
+# EXPOSE 5984
+# TODO: EXPOSE 5984   ???
+
+# RUN apt-get -y update && apt-get -y install couchdb
+
+# RUN curl -X PUT http://127.0.0.1:5984/_users
+# RUN curl -X PUT http://127.0.0.1:5984/_replicator
+# RUN curl -X PUT http://127.0.0.1:5984/_global_changes

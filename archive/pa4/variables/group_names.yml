@@ -1,0 +1,15 @@
+---
+allRemote: all_remote
+kafka1ZookeeperConsumer: vm2
+kafka2CouchDB: vm3
+k8sRemoteMaster: "{{ kafka1ZookeeperConsumer }}" # reused for loose-coupling and clarity
+k8sWorker: "{{ kafka2CouchDB }}" # reused for loose-coupling and clarity
+producer1: Producer1
+producer2: Producer2
+AllProducers: AllProducers
+allRemoteAndProducers: all_remote_and_producers
+k8sRemoteAndProducerMasters: k8s_remote_and_producer_masters
+k8sProducerMaster: "{{ producer1 }}" # reused for loose-coupling and clarity
+k8sProducerWorker: "{{ producer2 }}" # reused for loose-coupling and clarity
+k8sRemoteAndProducerWorkers: k8s_remote_and_producer_workers
+...

@@ -2,7 +2,8 @@ class FilterModule(object):
     def filters(self):
         return {
             'asSecGroupRules': self.filter_as_sec_group_rules,
-            'flagOptions': self.flag_options
+            'flagOptions': self.flag_options,
+            'removeDots': self.remove_dots
         }
 
     def filter_as_sec_group_rules(self, rules_data):
@@ -46,3 +47,6 @@ class FilterModule(object):
             ]
             for item in pair
         ]
+
+    def remove_dots(self, text):
+        return text.replace('.', '')

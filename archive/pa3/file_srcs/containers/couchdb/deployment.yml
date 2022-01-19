@@ -1,0 +1,39 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: couchdb-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: couchdb
+  minReadySeconds: 5
+  template:
+    metadata:
+      labels:
+        app: couchdb
+    spec:
+      restartPolicy: Always
+      containers:
+      - name: couchdb
+        image: 127.0.0.1:5000/teamx-couchdb:latest
+        imagePullPolicy: Always
+        env:
+        - name: COUCHDB_USER
+          value: admUser
+        - name: COUCHDB_PASSWORD
+          value: admPassword
+        ports:
+        - containerPort: 5984
+        # TODO: doubt it vvvv
+        # - epmd: 4369
+        # - cdbCluster: 9100
+        # TODO: call this from ansible.builtin.shell w/ kubectl exec .....
+        #           ...or not, might not matter at all!
+        # command: [curl]
+        # args:
+        # - -X
+        # - PUT
+        # - http://admUser:admPassword@127.0.0.1:5984/_global_changes
+...

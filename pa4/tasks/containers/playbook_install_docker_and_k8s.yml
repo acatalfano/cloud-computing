@@ -49,6 +49,10 @@
     path: /var/run/docker.sock
     mode: 0666
 
+- name: Disable swap
+  become: yes
+  ansible.builtin.shell: swapoff -a
+
 - name: Reload Daemon
   become: yes
   ansible.builtin.shell: |

@@ -14,8 +14,8 @@
 # Run the cleanup master playbook to cleanup
 # any remote instances if they exist
 #####################################################################
-- name: 'Play 1: Terminate Any Existing Cloud Instances'
-  ansible.builtin.import_playbook: playbook_master_cleanup.yml
+# - name: 'Play 1: Terminate Any Existing Cloud Instances'
+#   ansible.builtin.import_playbook: playbook_master_cleanup.yml
 
 #####################################################################
 ### Play 2: Install/Configure Base Dependencies

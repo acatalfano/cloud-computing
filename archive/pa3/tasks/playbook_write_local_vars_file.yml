@@ -1,0 +1,26 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano
+# Created: Fall 2021
+#
+# Write the created instances to an inventory file, deleting it first if it exists
+#
+# REQUIRES: instance_ids -- list of AWS EC2 Instance ID's
+#
+
+- name: Include Path Name Vars
+  ansible.builtin.include_vars: ../variables/path_names.yml
+
+- name: Include Group Name Vars
+  ansible.builtin.include_vars: ../variables/group_names.yml
+
+- name: Include Local Var Names
+  ansible.builtin.include_vars: ../variables/local_var_names.yml
+
+- name: Write EC2 ID's to Variables File as an array variable
+  ansible.builtin.lineinfile:
+    path: "{{ localVmVariables }}"
+    line: "---\n{{ runningInstanceIds }}: {{ instance_ids }}\n..."
+    create: yes
+...

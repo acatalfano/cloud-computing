@@ -1,0 +1,213 @@
+---
+key_name: Default_KeyPair
+master_instance_type: t2.medium
+worker_instance_type: t2.small
+# TODO: PROBABLY NOT ANNNY OF THESE RULES B/C IT ACTUALLY GETS EXPOSED ON 30000-32767!!!!
+couch_dbSG:
+  name: CouchDB_Traffic
+  description: Traffic for CouchDB
+  in_rules:
+  - ip: 0.0.0.0/0
+    port_range: '5984'
+    proto: tcp
+    description: couchDB inbound traffic
+  - ip: 0.0.0.0/0
+    port_range: '4369'
+    proto: tcp
+    description: epmd inbound traffic
+  - ip: 0.0.0.0/0
+    port_range: '9100'
+    proto: tcp
+    description: couchDB cluster inbound traffic
+  out_rules:
+  - ip: 0.0.0.0/0
+    port_range: '5984'
+    proto: tcp
+    description: couchDB outbound traffic
+  - ip: 0.0.0.0/0
+    port_range: '4369'
+    proto: tcp
+    description: epmd outbound traffic
+  - ip: 0.0.0.0/0
+    port_range: '9100'
+    proto: tcp
+    description: couchDB cluster outbound traffic
+kafkaSG:
+  name: Kafka_Traffic
+  description: Listen for traffic from Kafka
+  in_rules:
+  - ip: 0.0.0.0/0
+    port_range: '9092'
+    proto: tcp
+    description: Kafka inbound traffic
+  out_rules:
+  - ip: 0.0.0.0/0
+    port_range: '9092'
+    proto: tcp
+    description: Kafka outbound traffic
+zookeeperSG:
+  name: Zookeeper_traffic
+  description: Traffic for zookeeper
+  in_rules:
+  - ip: 0.0.0.0/0
+    port_range: '2181'
+    proto: tcp
+    description: Zookeeper port ingress
+  out_rules:
+  - ip: 0.0.0.0/0
+    port_range: '2181'
+    proto: tcp
+    description: Zookeeper port egress
+k8s_controlSG:
+  name: k8s_control
+  description: Traffic for Kubernetes Master
+  in_rules:
+  - ip: 0.0.0.0/0
+    port_range: '6443'
+    proto: tcp
+    description: k8s api server
+  - ip: 0.0.0.0/0
+    port_range: 2379-2380
+    proto: tcp
+    description: etcd server client api
+  # TODO: MAYBE need to do 10251 + 10252 for scheduler and controller instead of 10259 + 10257
+  - ip: 0.0.0.0/0
+    port_range: '10250-10252' # '10250'
+    proto: tcp
+    description: kubelet api
+  - ip: 0.0.0.0/0
+    port_range: '10259'
+    proto: tcp
+    description: kube-scheduler
+  - ip: 0.0.0.0/0
+    port_range: '10257'
+    proto: tcp
+    description: kube-controller-manager
+k8sWorkerSG:
+  name: k8sWorker
+  description: Traffic for Kubernetes Worker
+  in_rules:
+  - ip: 0.0.0.0/0
+    port_range: '10250-10252' # '10250'
+    proto: tcp
+    description: kubelet api
+  - ip: 0.0.0.0/0
+    port_range: 30000-32767
+    proto: tcp
+    description: nodePort services
+k8s_api_egressSG:
+  name: etcd api Initiator
+  description: Initiate contact with etcd server client api
+  # in_rules:
+  # - ip: 0.0.0.0/0
+  #   port_range: All
+  #   proto: tcp
+  #   description: all tcp ingress
+  # - ip: 0.0.0.0/0
+  #   port_range: All
+  #   proto: udp
+  #   description: all udp ingress
+  out_rules:
+  - ip: 0.0.0.0/0
+    port_range: '6443'
+    proto: tcp
+    description: allow etcd api server client api egress
+  # - ip: 0.0.0.0/0
+  #   port_range: All
+  #   proto: udp
+  #   description: all udp egress
+dockerPrivateRegistrySG:
+  name: Docker Private Registry
+  description: Allow traffic for using a custom docker private registry
+  in_rules:
+  - ip: 0.0.0.0/0
+    port_range: '5000'
+    proto: tcp
+    description: all ingress traffic on private registry port
+  out_rules:
+  - ip: 0.0.0.0/0
+    port_range: '5000'
+    proto: tcp
+    description: all egress traffic on private registry port
+sshSG:
+  name: ssh
+  description: allow SSH traffic
+  in_rules:
+  - ip: 0.0.0.0/0
+    port_range: '22'
+    proto: tcp
+    description: SSH ingress
+ftpSG:
+  name: FTP
+  description: allow FTP traffic
+  out_rules:
+  - ip: 0.0.0.0/0
+    port_range: '20'
+    proto: tcp
+    description: FTP ingress
+httpSG:
+  name: HTTP and HTTPS
+  description: allow HTTP and HTTPS traffic out
+  out_rules:
+  - ip: 0.0.0.0/0
+    port_range: '80'
+    proto: tcp
+    description: HTTP egress
+  - ip: 0.0.0.0/0
+    port_range: '443'
+    proto: tcp
+    description: HTTPS egress
+flannelSG:
+  name: Flannel Traffic
+  description: Allow Flannel Traffic for K8S Networking
+  in_rules:
+  - ip: 0.0.0.0/0
+    port_range: '8285'
+    proto: udp
+    description: Allow Flannel VXAN Traffic
+  - ip: 0.0.0.0/0
+    port_range: '8472'
+    proto: udp
+    description: Allow Flannel Traffic
+# TODO: kill later... vvvv
+test_allSG:
+  name: all ok
+  description: allow all traffic
+  in_rules:
+  - ip: 0.0.0.0/0
+    port_range: All
+    proto: udp
+    description: all udp ingress
+  - ip: 0.0.0.0/0
+    port_range: All
+    proto: tcp
+    description: all tcp ingress
+  out_rules:
+  - ip: 0.0.0.0/0
+    port_range: All
+    proto: udp
+    description: all udp egress
+  - ip: 0.0.0.0/0
+    port_range: All
+    proto: tcp
+    description: all tcp egress
+
+security_groups:
+- "{{ sshSG }}"
+- "{{ ftpSG }}"
+- "{{ httpSG }}"
+- "{{ couch_dbSG }}"
+- "{{ k8s_controlSG }}"
+- "{{ k8sWorkerSG }}"
+- "{{ k8s_api_egressSG }}"
+- "{{ flannelSG }}"
+- "{{ dockerPrivateRegistrySG }}"
+- "{{ zookeeperSG }}"
+- "{{ kafkaSG }}"
+- "{{ test_allSG }}"
+
+image: ami-09e67e426f25ce0d7
+region: us-east-1
+subnet: subnet-8d4cb2c1
+vpc_id: vpc-895822f4
+...

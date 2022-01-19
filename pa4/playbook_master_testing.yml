@@ -29,88 +29,108 @@
 
 #   - name: view hosts
 #     ansible.builtin.shell: cat ./hosts.out
-
-
-#####################################################################
-### Play 1: Testing
-#####################################################################
-- name: Testing
-  hosts: Producer1
-  # hosts: MyLocalVMs
-  # hosts: Remote1
-  # remote_user: ubuntu
+- name: Test variable set
+  hosts: Remote1
   vars_files:
   - variables/container_vars.yml
   - variables/path_names.yml
   - variables/group_names.yml
-  vars:
-    num: 4
-    fileTarget: /vagrant/file_srcs/containers/zookeeper/deployment.yml
-    baseSed: "sed '$!N;0,/\\(name: {{ targetVariable }}\\n *value: \\).*/s//\\1adam was here/;P;D'"
-    lst:
-    - first
-    - second
-    - third
-    mockKubectlOut:
-      apiVersion: v1
-      items:
-      - apiVersion: v1
-        kind: Service
-        metadata:
-          annotations:
-            kubectl.kubernetes.io/last-applied-configuration: |
-              {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"labels":{"app":"couchdb"},"name":"teamx-zookeeper","namespace":"default"},"spec":{"ports":[{"port":5984,"targetPort":5984}],"selector":{"app":"couchdb"},"type":"NodePort"}}
-          creationTimestamp: "2022-01-08T06:02:48Z"
-          labels:
-            app: couchdb
-          name: teamx-zookeeper
-          namespace: default
-          resourceVersion: "788"
-          uid: 886fff68-7d76-4780-8e64-1c75fd2b23e4
-        spec:
-          clusterIP: 10.106.132.77
-          clusterIPs:
-          - 10.106.132.77
-          externalTrafficPolicy: Cluster
-          internalTrafficPolicy: Cluster
-          ipFamilies:
-          - IPv4
-          ipFamilyPolicy: SingleStack
-          ports:
-          - nodePort: 31770
-            port: 5984
-            protocol: TCP
-            targetPort: 5984
-          selector:
-            app: couchdb
-          sessionAffinity: None
-          type: NodePort
-        status:
-          loadBalancer: {}
-      kind: List
-      metadata:
-        resourceVersion: ""
-        selfLink: ""
-
   tasks:
-  - name: print hostvars
+  - name: store join command as fact
+    vars:
+      joinCommandName: testJoinCommand
+      targetWorker: Remote2
+    ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_store_join_command.yml
+  - name: debug hostvars
     debug:
       var: hostvars
-  - name: print ansible_facts
+  - name: debug inventory_hostname
     debug:
-      var: ansible_facts
-  - name: print ansible_local
+      var: inventory_hostname
+  - name: debug remote hostname lookup
     debug:
-      var: ansible_local
-  - name: print xyz
-    debug:
-      msg: "{{ inventory_hostname }}"
-  - name: get env USER
-    debug:
-      msg: "{{ lookup('env', 'USER') }}"
-  - name: get user directory
-    debug:
-      msg: "{{ hostvars[inventory_hostname].ansible_user_dir }}"
+      msg: "{{ groups['Remote1'][0] }}"
+
+#####################################################################
+### Play 1: Testing
+#####################################################################
+# - name: Testing
+#   hosts: Producer1
+#   # hosts: MyLocalVMs
+#   # hosts: Remote1
+#   # remote_user: ubuntu
+#   vars_files:
+#   - variables/container_vars.yml
+#   - variables/path_names.yml
+#   - variables/group_names.yml
+#   vars:
+#     num: 4
+#     fileTarget: /vagrant/file_srcs/containers/zookeeper/deployment.yml
+#     baseSed: "sed '$!N;0,/\\(name: {{ targetVariable }}\\n *value: \\).*/s//\\1adam was here/;P;D'"
+#     lst:
+#     - first
+#     - second
+#     - third
+#     mockKubectlOut:
+#       apiVersion: v1
+#       items:
+#       - apiVersion: v1
+#         kind: Service
+#         metadata:
+#           annotations:
+#             kubectl.kubernetes.io/last-applied-configuration: |
+#               {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"labels":{"app":"couchdb"},"name":"teamx-zookeeper","namespace":"default"},"spec":{"ports":[{"port":5984,"targetPort":5984}],"selector":{"app":"couchdb"},"type":"NodePort"}}
+#           creationTimestamp: "2022-01-08T06:02:48Z"
+#           labels:
+#             app: couchdb
+#           name: teamx-zookeeper
+#           namespace: default
+#           resourceVersion: "788"
+#           uid: 886fff68-7d76-4780-8e64-1c75fd2b23e4
+#         spec:
+#           clusterIP: 10.106.132.77
+#           clusterIPs:
+#           - 10.106.132.77
+#           externalTrafficPolicy: Cluster
+#           internalTrafficPolicy: Cluster
+#           ipFamilies:
+#           - IPv4
+#           ipFamilyPolicy: SingleStack
+#           ports:
+#           - nodePort: 31770
+#             port: 5984
+#             protocol: TCP
+#             targetPort: 5984
+#           selector:
+#             app: couchdb
+#           sessionAffinity: None
+#           type: NodePort
+#         status:
+#           loadBalancer: {}
+#       kind: List
+#       metadata:
+#         resourceVersion: ""
+#         selfLink: ""
+
+#   tasks:
+#   - name: print hostvars
+#     debug:
+#       var: hostvars
+#   - name: print ansible_facts
+#     debug:
+#       var: ansible_facts
+#   - name: print ansible_local
+#     debug:
+#       var: ansible_local
+#   - name: print xyz
+#     debug:
+#       msg: "{{ inventory_hostname }}"
+#   - name: get env USER
+#     debug:
+#       msg: "{{ lookup('env', 'USER') }}"
+#   - name: get user directory
+#     debug:
+#       msg: "{{ hostvars[inventory_hostname].ansible_user_dir }}"
   ################################################################################################################
   # TODO: come back to this later!!!
   # - name: copy over user-configs

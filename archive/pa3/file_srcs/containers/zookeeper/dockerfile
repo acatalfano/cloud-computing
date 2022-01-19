@@ -1,0 +1,5 @@
+# Author: Adam Catalfano
+# Vanderbilt University
+# Created December 2021
+#
+FROM teamx-kafka-base:latest

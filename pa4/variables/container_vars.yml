@@ -9,6 +9,9 @@ images:
   directory: zookeeper
 - name: teamx-producer
   directory: producer
+- name: teamx-spark
+  directory: spark
+
 
 deployments:
   couchdb:

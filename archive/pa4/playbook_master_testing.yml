@@ -1,0 +1,475 @@
+---
+# EECS 4287/5287: Principles of Cloud Computing
+# Author: Adam Catalfano, Abhinav Jambulingam
+# Created: Fall 2021
+#
+# DELETE THIS PLAYBOOK EVENTUALLY.....
+# - name: Testing
+#   # hosts: MyLocalVMs
+#   hosts: MyLocalVMs
+#   remote_user: ubuntu
+#   tasks:
+#   - name: reload inventory
+#     ansible.builtin.meta: refresh_inventory
+
+#   # - name: debug hostvars
+#   #   ansible.builtin.debug:
+#   #     var: hostvars
+
+#   # - name: debug groups
+#   #   ansible.builtin.debug:
+#   #     var: groups
+#   - name: debug hosts
+#     vars:
+#       groups: "{{ groups }}"
+#       hostvars: "{{ hostvars }}"
+#     ansible.builtin.template:
+#       src: ./hosts_loop.j2
+#       dest: ./hosts.out
+
+#   - name: view hosts
+#     ansible.builtin.shell: cat ./hosts.out
+
+
+#####################################################################
+### Play 1: Testing
+#####################################################################
+- name: Testing
+  hosts: Producer1
+  # hosts: MyLocalVMs
+  # hosts: Remote1
+  # remote_user: ubuntu
+  vars_files:
+  - variables/container_vars.yml
+  - variables/path_names.yml
+  - variables/group_names.yml
+  vars:
+    num: 4
+    fileTarget: /vagrant/file_srcs/containers/zookeeper/deployment.yml
+    baseSed: "sed '$!N;0,/\\(name: {{ targetVariable }}\\n *value: \\).*/s//\\1adam was here/;P;D'"
+    lst:
+    - first
+    - second
+    - third
+    mockKubectlOut:
+      apiVersion: v1
+      items:
+      - apiVersion: v1
+        kind: Service
+        metadata:
+          annotations:
+            kubectl.kubernetes.io/last-applied-configuration: |
+              {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"labels":{"app":"couchdb"},"name":"teamx-zookeeper","namespace":"default"},"spec":{"ports":[{"port":5984,"targetPort":5984}],"selector":{"app":"couchdb"},"type":"NodePort"}}
+          creationTimestamp: "2022-01-08T06:02:48Z"
+          labels:
+            app: couchdb
+          name: teamx-zookeeper
+          namespace: default
+          resourceVersion: "788"
+          uid: 886fff68-7d76-4780-8e64-1c75fd2b23e4
+        spec:
+          clusterIP: 10.106.132.77
+          clusterIPs:
+          - 10.106.132.77
+          externalTrafficPolicy: Cluster
+          internalTrafficPolicy: Cluster
+          ipFamilies:
+          - IPv4
+          ipFamilyPolicy: SingleStack
+          ports:
+          - nodePort: 31770
+            port: 5984
+            protocol: TCP
+            targetPort: 5984
+          selector:
+            app: couchdb
+          sessionAffinity: None
+          type: NodePort
+        status:
+          loadBalancer: {}
+      kind: List
+      metadata:
+        resourceVersion: ""
+        selfLink: ""
+
+  tasks:
+  - name: print hostvars
+    debug:
+      var: hostvars
+  - name: print ansible_facts
+    debug:
+      var: ansible_facts
+  - name: print ansible_local
+    debug:
+      var: ansible_local
+  - name: print xyz
+    debug:
+      msg: "{{ inventory_hostname }}"
+  - name: get env USER
+    debug:
+      msg: "{{ lookup('env', 'USER') }}"
+  - name: get user directory
+    debug:
+      msg: "{{ hostvars[inventory_hostname].ansible_user_dir }}"
+  ################################################################################################################
+  # TODO: come back to this later!!!
+  # - name: copy over user-configs
+  #   ansible.builtin.copy:
+  #     src: ./file_srcs/user-configs
+  #     dest: ~/
+
+  # - name: read map-reduce-config
+  #   ansible.builtin.include_vars: "{{ mapReduceConfig }}"
+
+  # - name: make the split-data directory
+  #   ansible.builtin.file:
+  #     state: directory
+  #     path: ~/data
+  # - name: split up csv file
+  #   ansible.builtin.shell:
+  #     cmd: split -n l/{{ mapCount }} --additional-suffix=.csv {{ allDataFile }} split-
+  #     chdir: ~/data
+
+  # - name: store the split files in register
+  #   ansible.builtin.shell: ls ~/data
+  #   register: splitFiles
+
+  # - name: loop over the split files
+  #   loop: "{{ splitFiles.stdout_lines }}"
+  #   debug:
+  #     var: item
+
+  # - name: remove the split up csv files
+  #   ansible.builtin.file:
+  #     state: absent
+  #     path: ~/data
+
+    # split -n l/{{ nProds }} -d --additional-suffix=.csv -a {{ (numProds to string).length }} energy-sorted1M.csv split-
+    #OR:
+    # split -n l/{{ nProds }} --additional-suffix=.csv energy-sorted1M.csv split-
+    #   and just loop over stdout_lines for:
+    #       ls split-*
+  ################################################################################################################
+  # - name: try parsing string as a list
+  #   vars:
+  #     strList: "[\n  32591,\n  30527,\n  30317,\n  32737,\n  31863\n]"
+  #     cleanStr: "{{ strList | regex_replace('[(\\n)(\\s*)\\[\\]]', '') }}"
+  #   debug:
+  #     msg: "{{ cleanStr.split(',') }}"
+  ################################################################################################################
+  # - name: Store exposed NodePorts for Zookeeper and Couchdb k8s apps
+  #   # ansible.builtin.shell: "
+  #   #   kubectl get svc -l app={{ item.app }} -o json | jq '
+  #   #     [.items[].spec] |
+  #   #     map(select(.type != \"ClusterIP\")) |
+  #   #     map(
+  #   #       .ports |
+  #   #       map(.nodePort)
+  #   #     ) |
+  #   #     flatten
+  #   #   '
+  #   #   "
+  #   # register: "{{ item.portsRegister }}"
+  #   vars:
+  #     appName: "{{ item.app }}"
+  #     portsRegister: "{{ item.portsRegister }}"
+  #   ansible.builtin.include_tasks: './tasks/containers/playbook_store_ports_registers.yml'
+  #   loop: "{{ deployments | json_query('*.{app: appName, portsRegister: nodePortsRegister}[?app != `kafka`]') }}"
+
+  # - name: Configure Kafka Deployment Environment Variables
+  #   vars:
+  #     targetDirectory: "{{ kafkaDeploymentDirectory }}"
+  #     envMap:
+  #       KAFKA_BIN_FILE: "{{ kafkaServerStart }}"
+  #       KAFKA_PROPS_FILE: "{{ kafkaServerProperties }}"
+  #       KAFKA_API_VERSIONS_BIN_FILE: "{{ kafkaApiVersionsBin }}"
+  #       ZOOKEEPER_DNS: "{{ deployments.zookeeper.externalServiceName }}"
+  #   ansible.builtin.include_tasks: tasks/containers/k8s/setup/playbook_configure_deployment_environment_variables.yml
+
+  # - name: Deploy the kafka instances
+  #   vars:
+  #     instanceId: "{{ item }}"
+  #   loop: "{{ range(deployments.kafka.instanceCount) }}"
+  #   ansible.builtin.include_tasks: ./tasks/containers/k8s/deployments/playbook_deploy_kafka.yml
+
+  # - name: Stored exposed NodePorts for Kafka k8s apps
+  #   vars:
+  #     appName: "{{ deployments.kafka.appName }}"
+  #     portsRegister: "{{ deployments.kafka.nodePortsRegister }}"
+  #   ansible.builtin.include_tasks: ./tasks/containers/playbook_store_ports_registers.yml
+  ################################################################################################################
+  # - name: x
+  #   debug:
+  #     msg: "{{ deployments | json_query('*.{app: appName, portsRegister: nodePortsRegister}[?app != `kafka`]') }}"
+  # - name: x list
+  #   debug:
+  #     msg: "{{ deployments | json_query('*.{app: appName, portsRegister: nodePortsRegister}[?app != `kafka`]') | list }}"
+  # - name: test the NodePorts store thing
+  #   vars:
+  #     appName: "{{ item.app }}"
+  #     portsRegister: "{{ item.portsRegister }}"
+  #   ansible.builtin.include_tasks: './tasks/containers/playbook_store_ports_registers.yml'
+  #   loop: "{{ deployments | json_query('*.{app: appName, portsRegister: nodePortsRegister}[?app != `kafka`]') }}"
+  ################################################################################################################
+  # - name: try some jmespath syntax
+  #   debug:
+  #     msg: >
+  #       {{ deployments | json_query('*.{app: appName, portsRegister: nodePortsRegister}[?app != `kafka`]') }}
+  ################################################################################################################
+  # - name: try the kubectl to jq command
+  #   vars:
+  #     appName: couchdb
+  #   ansible.builtin.shell: >-
+  #     kubectl get svc -l app={{ appName }} -o json
+  #     | jq -r '
+  #         [.items[].spec]
+  #         | map(select(.type != "ClusterIP"))
+  #         | map(
+  #           .ports
+  #           | map(.nodePort)
+  #         )'
+  ################################################################################################################
+  # - name: test my remote connections
+  #   ansible.builtin.shell: echo hello world!
+  ################################################################################################################
+  # - name: install dos2unix
+  #   become: yes
+  #   ansible.builtin.apt:
+  #     name: dos2unix
+
+  # - name: fix dos line endings
+  #   ansible.builtin.shell: "dos2unix ~/Inventory"
+
+  # - name: xyz
+  #   vars:
+  #     ip: 69.69.69.69
+  #     lookfor: Remote1
+  #   ansible.builtin.replace:
+  #     path: '~/Inventory'
+  #     regexp: '(?<=^\[{{ lookfor }}\]\n)(\d+\.){3}\d+'
+  #     replace: '{{ ip }}'
+
+  ################################################################################################################
+  # - name: "> string"
+  #   debug:
+  #     # strips line breaks and extra padding
+  #     msg: >-
+  #       line 1
+  #       line 2
+  # - name: "| string"
+  #   # preserves line break characters
+  #   debug:
+  #     msg: |-
+  #       line 1
+  #       line 2
+
+
+
+  ################################################################################################################
+  # - name: install jmespath
+  #   pip:
+  #     name:
+  #     - jmespath
+  # - name: test exposedPortRegisters definition syntax
+  #   debug:
+  #     # var: exposedPortRegisters
+  #     # works! vvv gets list of objects like { app, portsRegister }
+  #     msg: "{{ deployments | json_query('*.{app: appName, portsRegister: nodePortsRegister}') }}"
+
+  ################################################################################################################
+  # - name: test list-loop syntax
+  #   loop: "{{ lst }}"
+  #   debug:
+  #     var: item
+
+
+
+  ################################################################################################################
+  # - name: Create strimzi directory
+  #   ansible.builtin.file:
+  #     state: directory
+  #     path: ~/strimzi
+
+  # - name: Download and Extract the Strimzi Kafka Operator (.tar.gz archive)
+  #   ansible.builtin.unarchive:
+  #     remote_src: yes
+  #     src: https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.27.0/strimzi-0.27.0.tar.gz
+  #     dest: ~/strimzi/
+  #     # creates: ~/strimzi/
+  #     extra_opts:
+  #     - --strip-components
+  #     - 1
+
+  # - name: store in register list of files with name like ~/strimzi/install/cluster-operator/*RoleBinding*.yaml
+  #   ansible.builtin.find:
+  #     paths:
+  #     - ~/strimzi/install/cluster-operator/
+  #     patterns: '*RoleBinding*.yaml'
+  #   register: roleBindingFiles
+
+  # - name: test out list of found files
+  #   debug:
+  #     msg: "{{ roleBindingFiles.files | map(attribute='path') | join(' ') }}"
+  #   # debug:
+  #   #   var: item
+  #   # with_fileglob:
+  #   # - '~/strimzi/install/cluster-operator/*RoleBinding*.yaml'
+
+  # - name: remove strimzi directory
+  #   ansible.builtin.file:
+  #     state: absent
+  #     path: ~/strimzi/
+
+  ################################################################################################################
+  # - name: try equality operator
+  #   vars:
+  #     tst: 'tst'
+  #   debug:
+  #     msg: "{{ tst == 'tst' }}"
+
+  ################################################################################################################
+  # - name: map range to list of dicts (store as fact)
+  #   ansible.builtin.set_fact:
+  #     data: "{{ data | default([]) + [{ 'ordinal': item.1, 'idx': item.0 }] }}"
+  #   loop: "{{ range(5) | zip(['first', 'second', 'third', 'fourth', 'fifth']) }}"
+  # - name: map range to list of dicts (store as fact)
+  #   ansible.builtin.set_fact:
+  #     data: "{{ data | default([]) + [{ 'ordinal': item, 'idx': idx }] }}"
+  #   loop:
+  #   - 'first'
+  #   - 'second'
+  #   - 'third'
+  #   - 'fourth'
+  #   - 'fifth'
+  #   loop_control:
+  #     index_var: idx
+
+  # - name: print out the fact
+  #   debug:
+  #     var: data
+
+
+
+
+  ################################################################################################################
+
+  # - name: Map dict to list
+  #   vars:
+  #     data:
+  #       a: 1
+  #       b: 2
+  #       c: 3
+  #       d: 4
+  #   debug:
+  #     var: data | dict2items(key_name='alpha', value_name='numeric')
+
+
+  ################################################################################################################
+  # - name: build list of dicts
+  #   ansible.builtin.set_fact:
+  #     data: "{{
+  #       data | default([])
+  #       + [
+  #           {
+  #             'foo': 'bar',
+  #             'fiz': 'baz',
+  #             'id': item
+  #           }
+  #         ]
+  #       }}"
+  #   loop: "{{ range(num) | list }}"
+
+  # - name: debug data
+  #   debug:
+  #     var: data
+  # sed '$!N;0,/\(\n *value: \).*/s//\1adam was here/;P;D' deployment.yml
+  # - name: test out replace filter
+  #   debug:
+  #     msg: "{{ '/this/is/some/path' | replace('/', '//') }}"
+
+  ################################################################################################################
+  # - name: install dos2unix
+  #   become: yes
+  #   ansible.builtin.apt:
+  #     name: dos2unix
+
+  # - name: fix dos line endings
+  #   ansible.builtin.shell: "dos2unix {{ fileTarget }}"
+
+  # - name: replace zookeeperBinFile and zookeeperPropsFile values
+  #   vars:
+  #     targetVariable: "{{ item.envVar }}"
+  #     updateValue: "{{ item.val }}"
+  #   # ansible.builtin.include_tasks: ./playbook_sed_helper.yml
+  #   ansible.builtin.shell: >-
+  #     sed -i 'N;0,/\(name: {{ targetVariable }}\n *value: \).*/s//\1{{ updateValue }}/;P;D' {{ fileTarget }}
+  #   # $! isn't necessary I guess...
+  #   # sed -i '$!N;0,/\(name: {{ targetVariable }}\n *value: \).*/s//\1{{ updateValue }}/;P;D' {{ fileTarget }}
+  #   loop:
+  #   - envVar: ZOOKEEPER_BIN_FILE
+  #     val: binValue
+  #   - envVar: ZOOKEEPER_PROPS_FILE
+  #     val: propsValue
+  # # - name: replace zookeeperBinFile value
+  # #   ansible.builtin.shell: >-
+  # #     sed '$!N;0,/\(name: ZOOKEEPER_BIN_FILE\n *value: \).*/s//\1adam was here/;P;D' {{ fileTarget }}
+
+  # #   # ansible.builtin.replace:
+  # #   #   path: "{{ fileTarget }}"
+  # #   #   # after: 'name: ZOOKEEPER_BIN_FILE'
+  # #   #   regexp: (?<=value:).*$
+  # #   #   replace: ' NEW BIN FILE VALUE'
+
+  # # - name: replace zookeeperPropsFile value
+  # #   ansible.builtin.replace:
+  # #     path: "{{ fileTarget }}"
+  # #     # after: 'name: ZOOKEEPER_PROPS_FILE'
+  # #     regexp: (?<=value:).*$
+  # #     replace: ' NEW PROPS FILE VALUE'
+
+  # - name: load file contents in register
+  #   ansible.builtin.shell:
+  #     "
+  #     echo
+  #     {{ fileTarget }} |
+  #     cat
+  #     "
+  #   register: fileContents
+
+  # - name: print contents of deployment file
+  #   debug:
+  #     var: fileContents.stdout_lines
+
+  ################################################################################################################
+  # - name: write content to file
+  #   ansible.builtin.copy:
+  #     dest: ~/test.json
+  #     content: "{{ mockKubectlOut | to_json }}"
+  #     mode: 0777
+  #   # ansible.builtin.lineinfile:
+  #   #   create: yes
+  #   #   regexp: '^.*$'
+  #   #   line: "{{ mockKubectlOut }}"
+  #   #   path: ~/test.json
+
+  # - name: test the jq command
+  #   ansible.builtin.shell: >-
+  #     jq -r
+  #       '[.items[].spec]
+  #       | map(select(.type !=  \"ClusterIP\"))
+  #       | map(
+  #         .ports
+  #         | map(.nodePort))'
+  #     ~/test.json
+  #   register: data
+  #         # | flatten'
+
+  # - name: store data as fact
+  #   ansible.builtin.set_fact:
+  #     dataFact: "{{ data.stdout }}"
+
+  # - name: print data (and test append -- i.e. is it really a list?)
+  #   #                                           ^^^^^^ YES, YES IT IS!!!!!
+  #   debug:
+  #     msg: "{{ dataFact + [1] }}"
+...

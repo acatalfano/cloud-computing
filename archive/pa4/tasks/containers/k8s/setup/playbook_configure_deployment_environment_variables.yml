@@ -1,0 +1,20 @@
+---
+#
+# EECS 5287: Principles of Cloud Computing
+# Author: Adam Catalfano, Abhinav Jambulingam
+# Created: Fall 2021
+#
+# Set Environment Variables in a deployment.yml file
+#
+# REQUIRES:
+#   targetDirectory     - path to the directory containing the deployment.yml file
+#                           (on the remote host)
+#   envMap - dictionary of environment variable names mapping to their values
+#
+
+
+- name: Configure Deployment Environment Variables
+  ansible.builtin.shell: >-
+    sed -i 'N;0,/\(name: {{ item.varName }}\n *value: \).*/s//\1{{ item.varValue | replace('/', '\/') }}/;P;D' {{ targetDirectory }}/deployment.yml
+  loop: "{{ envMap | dict2items(key_name='varName', value_name='varValue') }}"
+...
